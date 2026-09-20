@@ -7,24 +7,29 @@ Author: Haider Ali
 
 ---
 
-## What Hostinger needs
+## How Hostinger builds this
 
-Hostinger's Git integration **clones the repository and serves it. It does not
-run a build.** So the built output is committed to the repository, and
-`index.html` sits at the root where Hostinger expects it.
-
-That means: **run `npm run build` and commit the result before you push.**
-If you push only `src/`, the site will not update.
+Hostinger **does** run a build. It clones the repository into
+`hbuilds/source/repository`, runs `npm install` and then `npm run build`, and
+publishes the result. So you do not have to build before pushing, though
+committing the built files does no harm and means the site still works if the
+build step is ever skipped.
 
 ```
-index.html          the page Hostinger serves
-assets/app.js       the built bundle
-.htaccess           HTTPS, caching, security headers, SPA routing
-robots.txt
-src/                source, not served
-build.mjs           the build
-package.json
+src/app.jsx           the application
+src/entry.jsx         mounts it
+src/shell.head.html   the page around it
+build.mjs             turns those into index.html + assets/app.js
+index.html            built output, served
+assets/app.js         built output, served
+.htaccess             HTTPS, caching, security headers, SPA routing
 ```
+
+**Keep the folder structure.** If you download the files one by one they all
+land in the same folder and the structure is lost. The build now copes with
+that: it looks for `entry.jsx`, `app.jsx` and `shell.head.html` in `src/` and
+then in the repository root, and builds from wherever it finds them. Use the
+zip if you want the layout to come out right on its own.
 
 ---
 
@@ -70,13 +75,31 @@ package.json
 ```bash
 npm install          # once
 # edit src/app.jsx
-npm run build        # rewrites index.html and assets/app.js
+npm run build        # optional locally, Hostinger runs it too
 git add -A && git commit -m "what changed" && git push
 ```
 
 Then press **Deploy** in hPanel, or switch on auto-deployment: hPanel shows a
 webhook URL, which you paste into GitHub under **Settings → Webhooks** with
 content type `application/json`. After that every push deploys on its own.
+
+---
+
+## Two messages npm prints, and what they mean
+
+**`recharts@2.15.4: 1.x and 2.x branches are no longer active`**
+
+A deprecation notice, not a fault. Recharts 2 works and is what every chart in
+the console is written against. Version 3 changes the API, so moving to it
+means rewriting the charts and retesting them. Do that as a deliberate piece of
+work, not as part of a deploy.
+
+**`1 moderate severity vulnerability`**
+
+This was esbuild's development server, which this project never starts. It only
+matters if you run `esbuild serve`. The version here is already past it, so the
+warning should be gone. Do not run `npm audit fix --force`: it upgrades across
+breaking versions and will change Recharts underneath you.
 
 ---
 

@@ -11,12 +11,15 @@
     "watch": "node build.mjs && echo 'run npm run build again after edits'"
   },
   "devDependencies": {
-    "esbuild": "^0.21.5"
+    "esbuild": "^0.25.0"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "lucide-react": "0.383.0",
     "recharts": "2.15.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

@@ -17969,7 +17969,6 @@ export default function App() {
                   terms: ["New payment term", () => newTermModal()],
                   vendors: ["New vendor", () => newSupplierModal()],
                   customers: ["New customer", () => newContactModal()],
-                  customers: ["New customer", () => newContactModal()],
                   people: ["New employee", () => newEmployeeModal()],
                   loans: ["New loan", () => newLoanModal()],
                   payroll: ["New payroll run", () => openPayrun()],
