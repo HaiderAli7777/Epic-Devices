@@ -1,56 +1,37 @@
-/* Builds the app into index.html + assets/app.js at the repository root.
-   Works whether the sources sit in src/ or flat beside this file, because a
-   file-by-file download loses the folder structure and that is an easy way to
-   end up with a layout that does not match the paths. */
+/* Build a ready-to-upload static website. No build step is needed on the host. */
 import { build } from "esbuild";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
-const find = (name) => {
-  for (const p of ["src/" + name, "./" + name, "source/" + name]) {
-    if (existsSync(p)) return p;
-  }
-  return null;
-};
-
-const entry = find("entry.jsx");
-const shell = find("shell.head.html");
-const app = find("app.jsx");
-
-const missing = [["entry.jsx", entry], ["shell.head.html", shell], ["app.jsx", app]]
-  .filter(([, p]) => !p).map(([n]) => n);
-if (missing.length) {
-  console.error("\nBuild stopped: cannot find " + missing.join(", "));
-  console.error("Looked in src/ and in the repository root.");
-  console.error("These files must be committed, in either layout:\n");
-  console.error("  src/entry.jsx  src/app.jsx  src/shell.head.html");
-  console.error("  or entry.jsx   app.jsx      shell.head.html\n");
-  process.exit(1);
-}
-console.log("sources: " + entry + ", " + app + ", " + shell);
-
+process.chdir(dirname(fileURLToPath(import.meta.url)));
 mkdirSync("assets", { recursive: true });
 
 const out = await build({
-  entryPoints: [entry],
+  entryPoints: ["src/entry.jsx"],
   bundle: true,
   minify: true,
   format: "iife",
   target: "es2019",
   jsx: "automatic",
-  loader: { ".jsx": "jsx" },
+  loader: { ".jsx": "jsx", ".css": "text" },
   define: { "process.env.NODE_ENV": '"production"' },
-  outfile: "assets/app.js",
+  outdir: "assets",
+  entryNames: "app-[hash]",
   metafile: true,
-  logLevel: "warning",
+  legalComments: "eof",
 });
 
-const head = readFileSync(shell, "utf8");
-if (!head.includes('id="root"')) {
-  console.error('Build stopped: shell.head.html has no <div id="root">.');
-  process.exit(1);
-}
-writeFileSync("index.html", head + '<script src="./assets/app.js" defer></script>\n</body>\n</html>\n');
+const bundle = Object.keys(out.metafile.outputs).find(name => name.endsWith(".js"));
+if (!bundle) throw new Error("Build did not produce a JavaScript bundle.");
+const head = readFileSync("src/shell.head.html", "utf8");
+const html = head +
+  `<script src="./${bundle}" defer></script>\n</body>\n</html>\n`;
+writeFileSync("index.html", html);
 
-const bytes = Object.values(out.metafile.outputs).find((o) => o.entryPoint || true).bytes;
-console.log("built assets/app.js  " + (bytes / 1024).toFixed(0) + " KB");
-console.log("wrote index.html");
+// Remove only previous generated entry bundles, never uploaded media.
+for (const file of readdirSync("assets")) {
+  if (/^app(?:-[A-Z0-9]+)?\.js$/.test(file) && `assets/${file}` !== bundle) unlinkSync(`assets/${file}`);
+}
+console.log(`Built ${bundle} (${Math.round(out.metafile.outputs[bundle].bytes / 1024)} KB)`);
+console.log("Ready to upload: index.html, assets/, .htaccess and robots.txt");

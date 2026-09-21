@@ -1,145 +1,123 @@
-# EPIC DEVICES
+# EPIC DEVICES — Website Upgrade 3.0
 
-Storefront and business console. A single React application, built to one
-JavaScript bundle and served as static files.
+Prepared for Haider Ali. Deployment format: GitHub repository → Hostinger static website.
 
-Author: Haider Ali
+This package contains the finished website and editable React source. The build is already included. You do not need Node.js or an npm build on Hostinger.
 
----
+## Deploy these files
 
-## How Hostinger builds this
+1. Extract this ZIP on your computer.
+2. Upload the **contents** to the root of your GitHub repository. Do not upload only the ZIP, and do not put the entire site inside an extra folder.
+3. Preserve the `assets/` and `src/` folders. `index.html` must be at the repository root.
+4. Connect the repository and the intended branch to your Hostinger website's Git deployment.
+5. Deploy the repository contents to the website's document root, normally `public_html`. If the Git directory field represents a subfolder inside that root, leave it blank for a root-domain deployment.
+6. Ensure SSL is enabled for the domain. The included Apache configuration redirects HTTP to HTTPS.
+7. Open the website over HTTPS. The first slider panel should say “Your world. On repeat.”
 
-Hostinger **does** run a build. It clones the repository into
-`hbuilds/source/repository`, runs `npm install` and then `npm run build`, and
-publishes the result. So you do not have to build before pushing, though
-committing the built files does no harm and means the site still works if the
-build step is ever skipped.
+The files needed to display the website are:
 
-```
-src/app.jsx           the application
-src/entry.jsx         mounts it
-src/shell.head.html   the page around it
-build.mjs             turns those into index.html + assets/app.js
-index.html            built output, served
-assets/app.js         built output, served
-.htaccess             HTTPS, caching, security headers, SPA routing
-```
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Homepage, at the repository root |
+| `assets/app-*.js` | Finished application bundle; the filename changes when code changes |
+| `assets/epic-hero.webp` | Supporting audio collection artwork |
+| `assets/epic-collections.webp` | Collection artwork |
+| `assets/slide-*-v3-*.webp` | Responsive images for the three new slider scenes |
+| `assets/fonts/` | Local house fonts and their licenses |
+| `.htaccess` | Apache index, HTTPS, caching and response headers |
+| `robots.txt` | Crawler settings |
 
-**Keep the folder structure.** If you download the files one by one they all
-land in the same folder and the structure is lost. The build now copes with
-that: it looks for `entry.jsx`, `app.jsx` and `shell.head.html` in `src/` and
-then in the repository root, and builds from wherever it finds them. Use the
-zip if you want the layout to come out right on its own.
+Keep the generated assets in Git. They are deliberately **not** excluded by `.gitignore`.
 
----
+## What changed
 
-## First deployment
+- Three individually art-directed slider scenes: audio, workspace and power, each with its own image, palette, copy and collection link.
+- Crossfades, thumbnail navigation, previous/next controls, a live timer, keyboard arrows and horizontal touch gestures. Autoplay pauses on hover, while offscreen and when the browser tab is hidden. Manual selection or keyboard focus stops it until Play is chosen. Reduced-motion preferences disable autoplay and transitions.
+- A three-step product finder that uses actual catalog prices, categories and availability, with budget and sorting preferences. Its result link transfers those choices to the catalog. Empty results offer a prefilled email enquiry.
+- Product quick view with image selection, specifications, stock-aware quantity controls, wishlist, comparison and the shared shopping bag.
+- A redesigned comparison dialog with a differences-only filter, price highlights, product removal and stock-aware add-to-bag controls.
+- Keyboard search suggestions: Up/Down selects a result, Enter opens it, and Escape dismisses the list.
+- Native modal focus containment and Escape dismissal for the finder, quick view and comparison.
+- A new premium storefront with a cinematic hero, original imagery, clearer navigation and six collection cards.
+- A wider product search with matching product suggestions and a keyboard shortcut.
+- Updated product cards, catalog filters, comparison, shopping bag and checkout appearance.
+- Mobile navigation, a collapsible filter panel, and a mobile menu for the business console.
+- A refreshed console sidebar, header, revenue cards, panels, tables and forms.
+- Keyboard focus handling for the cart and navigation, Escape dismissal, a skip link and reduced-motion support.
+- Cart and product quantities are limited by stock. Collection-only orders no longer show free-shipping offers or accrue an internal courier cost.
+- Newsletter controls now prepare a real email request in the visitor's email application; they no longer claim an unsent subscription succeeded.
+- Checkout is explicitly a session preview. Selecting a card method does not mark a payment as received.
+- The flattened upload has been restored to the directory structure expected by its build.
+- Generated JavaScript filenames contain a content hash, preventing the old fixed `app.js` cache problem on future uploads.
 
-1. Create an empty GitHub repository and push these files.
+The existing product, inventory, purchasing, sales, accounting, HR and other console screens remain in the application. Their accounting, tax and payroll rules were not re-audited or updated for current legislation by this visual upgrade.
 
-   ```bash
-   git init
-   git add .
-   git commit -m "EPIC DEVICES"
-   git branch -M main
-   git remote add origin git@github.com:YOUR-USER/YOUR-REPO.git
-   git push -u origin main
-   ```
+## Edit and rebuild locally
 
-2. In hPanel open **Websites → your site → Advanced → GIT**.
-
-3. Fill in:
-
-   - **Repository**: your repository URL
-   - **Branch**: `main`
-   - **Directory**: leave **empty**
-
-   An empty directory means the repository root is deployed into
-   `public_html`, which is where `index.html` needs to land. If you type a
-   folder name here the site will appear at `yourdomain.com/that-folder/`
-   instead of at the root.
-
-4. If the repository is private, copy the SSH key hPanel shows you and add it
-   to GitHub under **Settings → Deploy keys**.
-
-5. Press **Create**, then **Deploy**.
-
-6. In hPanel turn on the free SSL certificate under **Security → SSL**. The
-   `.htaccess` already forces HTTPS, so do this before sharing the address or
-   the redirect will fail.
-
----
-
-## Making a change
+Use Node.js 20 or later. From the extracted project directory:
 
 ```bash
-npm install          # once
-# edit src/app.jsx
-npm run build        # optional locally, Hostinger runs it too
-git add -A && git commit -m "what changed" && git push
+npm ci
+npm run build
+npm run dev
 ```
 
-Then press **Deploy** in hPanel, or switch on auto-deployment: hPanel shows a
-webhook URL, which you paste into GitHub under **Settings → Webhooks** with
-content type `application/json`. After that every push deploys on its own.
+Open the local address printed by the preview command. The default is `http://127.0.0.1:4173`.
 
----
+After editing, run `npm run build` again. Commit the changed source, `index.html`, and the new `assets/app-*.js` to GitHub, then deploy that version from Hostinger. The build removes only old generated entry bundles from your local `assets/` directory.
 
-## Two messages npm prints, and what they mean
+| File | Edit here |
+| --- | --- |
+| `src/storefront.jsx` | Header, collections, restock request, footer and information panels |
+| `src/experience.jsx` | Version 3 slider, finder, quick view and comparison |
+| `src/experience.css` | Version 3 responsive visual styling |
+| `src/slider-content.json` | Slider copy, images, category links, timing and autoplay default |
+| `src/upgrade.css` | New storefront and console styling, including responsive rules |
+| `src/app.jsx` | Existing business workflows, catalog, configuration and integration |
+| `src/shell.head.html` | Page title, description, preloads and loading state |
+| `build.mjs` | Production build |
+| `dev.mjs` | Local preview server |
 
-**`recharts@2.15.4: 1.x and 2.x branches are no longer active`**
+The house theme loads its fonts and images from this package. Alternate themes can request their fonts from Google Fonts.
 
-A deprecation notice, not a fault. Recharts 2 works and is what every chart in
-the console is written against. Version 3 changes the API, so moving to it
-means rewriting the charts and retesting them. Do that as a deliberate piece of
-work, not as part of a deploy.
+## Edit the slider
 
-**`1 moderate severity vulnerability`**
+Edit `src/slider-content.json`, run `npm run build`, then commit the changed source, generated `index.html` and new application bundle. The current package already includes the finished build.
 
-This was esbuild's development server, which this project never starts. It only
-matters if you run `esbuild serve`. The version here is already past it, so the
-warning should be gone. Do not run `npm audit fix --force`: it upgrades across
-breaking versions and will change Recharts underneath you.
+- `autoplay` controls the initial setting; visitors can pause or play it.
+- `durationMs` controls each slide's duration (minimum 5,000 milliseconds).
+- Each slide has a unique `id`, a `theme` (`ice`, `sage` or `midnight`), `title`, `accent`, `description`, button `cta`, target `category`, and navigation `label`/`subtitle`.
+- `image` and `smallImage` point to the full and small WebP assets. `alt` describes the illustration. Update image filenames when replacing artwork to avoid an old cached image.
+- Keep each headline line short; the supplied content has been checked down to 320-pixel screens.
+- Use category IDs already present in your catalog. The current slides link to `Headphones`, `grp_desk` and `grp_power`.
 
----
+See `UPGRADE-GUIDE.md` for a compact guide to the new customer features.
 
-## What the .htaccess does
+## Current application limits
 
-- Redirects HTTP to HTTPS
-- Sends every unknown path to `index.html`, so deep links work
-- `Content-Security-Policy` limiting scripts to this origin. The bundle is a
-  separate file precisely so that this can be strict rather than allowing
-  inline scripts
-- `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
-  `Permissions-Policy` and HSTS
-- Never caches `index.html`, caches `assets/` for a year
-- Compresses text with gzip or brotli where the server supports it
-- Blocks `src/`, `node_modules/`, dotfiles, `package.json` and `build.mjs`
-  from being fetched over the web
+This remains a **front-end application**, as in the supplied source. Deploying it on GitHub and Hostinger publishes the interface; it does not create a database or payment service.
 
-If a page ever fails to load after a change, the first thing to check is the
-browser console for a CSP violation.
+- Product changes, orders, invoices and business records live in browser memory and reset on reload. Nothing is shared between visitors.
+- The console sign-in is a browser-side demonstration, not secure authentication. Do not enter confidential business or customer data. Its original demonstration credentials are `admin` / `epic123`.
+- Checkout creates a session preview only. No order is sent, no confirmation email is sent and no payment is collected.
+- Contact and restock links open the visitor's email or phone application. An email is sent only when the visitor sends it there.
+- The catalog remains empty by default, matching the uploaded source. The homepage shows collections instead of invented stock or sales.
+- The provided contact phone, email, domain, address, commercial policies and product information are inherited from the source. Confirm and replace them before publishing.
 
----
+For real sales and business operations, connect server-side authentication, a database, validated product/stock/order APIs, an email service and an appropriate payment gateway. A static deployment alone is insufficient.
 
-## Before you take payments or hold real data
+## Store identity and data
 
-This is a front-end application. Everything it shows lives in the visitor's
-browser for the length of their session: nothing is written to a server and
-nothing survives a refresh.
+Search for `INITIAL_CONFIG` in `src/app.jsx` to edit the store name, contact information, delivery settings and other defaults, then rebuild. Settings changed through the current console are session-only.
 
-Two consequences worth being blunt about:
+`DEMO = false` is preserved. Setting it to `true` loads the source's example products **and** fictional business records. Use that only for a private demonstration, never as real trading data. Category and hero artwork is conceptual and must not be represented as a photograph of a specific product model for sale.
 
-- **The console sign-in is not security.** The check runs in the browser, so
-  anyone can read the credentials in the bundle or step past it with developer
-  tools. It keeps an honest visitor out of the admin screens. It stops nobody
-  else.
-- **No data persists.** Orders, invoices and ledger entries are lost on
-  refresh. Nothing here is a record you can rely on.
+## Troubleshooting deployment
 
-For a real shop you need a backend: a database, server-side authentication and
-authorisation, and payment handling that never touches the browser. This
-repository is the interface, and a good one, but it is only the interface.
+- **Old design:** confirm the updated `index.html` and its referenced hashed JavaScript file were deployed together. Hard-refresh once and clear any Hostinger cache if enabled.
+- **Blank page:** confirm there is an `assets/` folder beside `index.html`. Uploading the original flattened filenames will not work.
+- **404 or 403:** confirm `index.html` is in the domain's actual document root and the deployment did not add an extra top-level folder. The package includes `DirectoryIndex index.html`.
+- **HTTPS problem:** confirm the domain has an active SSL certificate before using the HTTPS redirect.
+- **Changes disappear after refresh:** this is the existing front-end storage limitation, not a GitHub or Hostinger deployment error.
 
-The demo dataset can be switched back on for a presentation by setting
-`const DEMO = true` near the top of `src/app.jsx` and rebuilding.
+See `VALIDATION.md` for the performed checks and `ASSET-NOTES.md` for artwork and font details.

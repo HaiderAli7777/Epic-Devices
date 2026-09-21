@@ -1,6 +1,6 @@
 {
   "name": "epic-devices",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "EPIC DEVICES storefront and business console",
   "author": "Haider Ali",
@@ -8,18 +8,16 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "watch": "node build.mjs && echo 'run npm run build again after edits'"
+    "dev": "node dev.mjs",
+    "preview": "node dev.mjs"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.21.5"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "lucide-react": "0.383.0",
     "recharts": "2.15.4"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }

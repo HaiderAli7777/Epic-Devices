@@ -1,3 +1,7 @@
+import UPGRADE_CSS from "./upgrade.css";
+import EXPERIENCE_CSS from "./experience.css";
+import { StoreHero, DiscoveryStrip, ProductFinder, QuickView, ProductCompare } from "./experience.jsx";
+import { StoreHeader, CollectionGrid, CollectionSpotlights, RestockRequest, StoreFooter, StoreInfo } from "./storefront.jsx";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   ShoppingCart, Search, Heart, User, Lock, Menu, X, Plus, Minus, Check, ChevronRight, ChevronLeft,
@@ -24,7 +28,7 @@ import {
    Saira (display) / Plus Jakarta Sans (body) / JetBrains Mono (data)
    ══════════════════════════════════════════════════════════════════════════ */
 const CSS_A = `
-@import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display&family=Outfit:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 
 .tx{
   --bg:#EEF3FC; --bg2:#F7FAFF; --surface:#FFFFFF; --surface2:#F5F8FE; --surface3:#EAF1FC;
@@ -3120,7 +3124,7 @@ function computeTotals(lines, zoneId, methodId, config, byId, autoPromos, weight
   const vBase = pz && pz.base != null ? pz.base : (zone.vendorBase != null ? zone.vendorBase : Math.round(zone.base * 0.72));
   const vPerKg = pz && pz.perKg != null ? pz.perKg : (zone.vendorPerKg != null ? zone.vendorPerKg : Math.round(zone.perKg * 0.72));
   const vMult = method.vendorMult != null ? method.vendorMult : method.mult;
-  const shipCost = subtotal > 0 ? Math.round((vBase + vPerKg * weight) * vMult) : 0;
+  const shipCost = ships && subtotal > 0 ? Math.round((vBase + vPerKg * weight) * vMult) : 0;
   const shipMargin = shipping - shipCost;
   return { items, subtotal, weight, shipping, shipCost, shipMargin, tax, total, free, etaMin, etaMax, zone, method };
 }
@@ -3711,6 +3715,11 @@ export default function App() {
   const [storeView, setStoreView] = useState("home");   // home | shop | checkout | confirm | wishlist | track
   const [tab, setTab] = useState("dashboard");
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [mobileFilters, setMobileFilters] = useState(false);
+  const [consoleMenu, setConsoleMenu] = useState(false);
+  const [infoTopic, setInfoTopic] = useState(null);
+  const [finderOpen, setFinderOpen] = useState(false);
+  const [quickId, setQuickId] = useState(null);
   const [authed, setAuthed] = useState(false);
   const [login, setLogin] = useState({ user: "", pass: "" });
   const [loginErr, setLoginErr] = useState("");
@@ -3878,9 +3887,6 @@ export default function App() {
   const [reelSlide, setReelSlide] = useState(0);
   const [reelPaused, setReelPaused] = useState(false);
   const [reelMuted, setReelMuted] = useState(true);
-  const [heroSlide, setHeroSlide] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
-  const HERO_COUNT = 3;
   const [now, setNow] = useState(Date.now());
   const PER_PAGE = 12;
   const [featTab, setFeatTab] = useState("best");
@@ -3942,6 +3948,36 @@ export default function App() {
     return () => clearInterval(t);
   }, [config.announce.length]);
 
+  useEffect(() => {
+    if (!cartOpen && !mobileMenu && !consoleMenu) return;
+    const previous = document.activeElement;
+    const oldOverflow = document.body.style.overflow;
+    const panel = document.querySelector(mobileMenu ? ".mmenu" : cartOpen ? ".drawer" : ".cshell > .rail");
+    document.body.style.overflow = "hidden";
+    const selectors = 'button:not([disabled]), a[href], input:not([disabled]), select, textarea, [tabindex="0"]';
+    const getNodes = () => [...(panel?.querySelectorAll(selectors) || [])].filter(n => n.getClientRects().length);
+    getNodes()[0]?.focus();
+    const onKey = e => {
+      if (e.key === "Escape") { setCartOpen(false); setMobileMenu(false); setConsoleMenu(false); }
+      if (e.key !== "Tab") return;
+      const nodes = getNodes(); if (!nodes.length) return;
+      if (e.shiftKey && document.activeElement === nodes[0]) { e.preventDefault(); nodes[nodes.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === nodes[nodes.length - 1]) { e.preventDefault(); nodes[0].focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = oldOverflow; document.removeEventListener("keydown", onKey); if (previous?.isConnected) previous.focus(); };
+  }, [cartOpen, mobileMenu, consoleMenu]);
+
+  // The house fonts are local; alternate themes can request Google Fonts.
+  useEffect(() => {
+    if (config.theme === "epic") return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display&family=Outfit:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap";
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [config.theme]);
+
   /* ── derived ── */
   const byId = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products]);
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
@@ -3981,10 +4017,13 @@ export default function App() {
     if (!p) return;
     setCartPulse((n) => n + 1);
     if (isSoldOut(p)) { pushToast(p.name + " is sold out", X, true); return; }
-    setCart((c) => { const ex = c.find((l) => l.id === id); return ex ? c.map((l) => (l.id === id ? { ...l, qty: l.qty + qty } : l)) : [...c, { id, qty }]; });
+    const requested = Math.max(1, Math.floor(Number(qty) || 1));
+    const current = cart.find(l => l.id === id)?.qty || 0;
+    if (current >= p.stock) { pushToast("All available units are already in your bag", Info); return; }
+    setCart(c => { const ex = c.find(l => l.id === id); const next = Math.min(p.stock, (ex?.qty || 0) + requested); return ex ? c.map(l => l.id === id ? { ...l, qty: next } : l) : [...c, { id, qty: next }]; });
     pushToast(p.name + " added to cart", ShoppingCart);
   };
-  const setQty = (id, qty) => setCart((c) => c.map((l) => (l.id === id ? { ...l, qty: Math.max(1, qty) } : l)));
+  const setQty = (id, qty) => setCart(c => c.map(l => l.id === id ? { ...l, qty: Math.min(Math.max(1, Math.floor(Number(qty) || 1)), Math.max(1, byId[id]?.stock || 1)) } : l));
   const removeLine = (id) => setCart((c) => c.filter((l) => l.id !== id));
   const cartCount = cart.reduce((s, l) => s + l.qty, 0);
   const toggleWish = (id) => setWishlist((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id]));
@@ -4011,7 +4050,7 @@ export default function App() {
     if (!live.length) { pushToast("Nothing available to move", X, true); return; }
     setCart((c) => {
       let next = [...c];
-      live.forEach((id) => { const ex = next.find((l) => l.id === id); if (ex) next = next.map((l) => (l.id === id ? { ...l, qty: l.qty + 1 } : l)); else next = [...next, { id, qty: 1 }]; });
+      live.forEach((id) => { const ex = next.find((l) => l.id === id); if (ex) next = next.map((l) => (l.id === id ? { ...l, qty: Math.min(byId[id].stock, l.qty + 1) } : l)); else next = [...next, { id, qty: 1 }]; });
       return next;
     });
     pushToast(live.length + " item" + (live.length > 1 ? "s" : "") + " moved to cart", ShoppingCart);
@@ -4021,7 +4060,7 @@ export default function App() {
   const doLogin = () => {
     if (login.user.trim().toLowerCase() === "admin" && login.pass === "epic123") {
       setAuthed(true); setLoginErr(""); setLogin({ user: "", pass: "" }); pushToast("Signed in to the console", ShieldCheck);
-    } else setLoginErr("That username and password don't match. Use the demo credentials below.");
+    } else setLoginErr("That username and password don't match. Check your credentials and try again.");
   };
   const logout = () => { setAuthed(false); setView("store"); setStoreView("shop"); pushToast("Signed out", LogOut); };
   const openConsole = () => { setView("console"); setMobileMenu(false); window.scrollTo(0, 0); };
@@ -4053,7 +4092,7 @@ export default function App() {
     }
     if (sort === "Price low") list = [...list].sort((a, b) => pInfo(a).final - pInfo(b).final);
     else if (sort === "Price high") list = [...list].sort((a, b) => pInfo(b).final - pInfo(a).final);
-    else if (sort === "Rating") list = [...list].sort((a, b) => b.rating - a.rating);
+    else if (sort === "Rating") list = [...list].sort((a, b) => (b.reviews ? b.rating : 0) - (a.reviews ? a.rating : 0) || pInfo(a).final - pInfo(b).final);
     else if (sort === "Best selling") list = [...list].sort((a, b) => displaySold(b) - displaySold(a));
     else if (sort === "Newest") list = [...list].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
     else list = [...list].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -4081,7 +4120,7 @@ export default function App() {
   const loBound = priceLo > 0 ? priceLo : priceBounds.min;
   const hiBound = priceHi > 0 ? priceHi : priceBounds.max;
   const priceTouched = priceLo > 0 || priceHi > 0;
-  const activeFilterCount = (category !== "All" ? 1 : 0) + (brand !== "All" ? 1 : 0) + (special !== "none" ? 1 : 0) +
+  const activeFilterCount = cats.length + brands.length + (category !== "All" ? 1 : 0) + (brand !== "All" ? 1 : 0) + (special !== "none" ? 1 : 0) +
     (inStockOnly ? 1 : 0) + (minRating > 0 ? 1 : 0) + (priceTouched ? 1 : 0) + tagFilter.length + (query.trim() ? 1 : 0);
   const clearFilters = () => {
     setCats([]); setBrands([]);
@@ -4111,21 +4150,6 @@ export default function App() {
     return () => clearInterval(t);
   }, [storeView, reelPaused]);
 
-  useEffect(() => {
-    if (storeView !== "home" || heroPaused) return;
-    if (typeof document !== "undefined" && document.hidden) return;
-    const t = setInterval(() => setHeroSlide((i) => (i + 1) % HERO_COUNT), 6500);
-    return () => clearInterval(t);
-  }, [storeView, heroPaused, heroSlide]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const onVis = () => setHeroPaused(document.hidden);
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
-
-  const goHeroSlide = (n) => setHeroSlide(((n % HERO_COUNT) + HERO_COUNT) % HERO_COUNT);
 
   useEffect(() => {
     if (!lightbox || typeof window === "undefined") return;
@@ -4647,6 +4671,8 @@ export default function App() {
     if (!cart.length) { pushToast("Your cart is empty", X, true); return; }
     const labels = { name: "name", email: "email", phone: "phone number", address: "delivery address", city: "city" };
     for (const f of ["name", "email", "phone", "address", "city"]) if (!form[f].trim()) { pushToast("Add your " + labels[f] + " to continue", X, true); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { pushToast("Enter a valid email address", X, true); return; }
+    if (cart.some(l => !byId[l.id] || isSoldOut(byId[l.id]) || l.qty > byId[l.id].stock)) { pushToast("Please update your bag to match available stock", X, true); return; }
     if (normalisePhone(form.phone).length < 10) { pushToast("That phone number looks too short", X, true); return; }
     const order = {
       id: "TX-" + seq, createdAt: Date.now(),
@@ -4655,7 +4681,7 @@ export default function App() {
       lines: cart.map((l) => ({ id: l.id, qty: l.qty, price: pInfo(byId[l.id]).final, cost: byId[l.id].cost })),
       subtotal: cartBase.subtotal, weight: cartBase.weight, shipping: cartBase.shipping, shipCost: cartBase.shipCost, tax: cartBase.tax,
       total: cartFinalTotal, discount: codeDiscount, promoCode: appliedPromo ? appliedPromo.code : null,
-      etaMin: cartBase.etaMin, etaMax: cartBase.etaMax, status: "Processing", paid: form.paymentMethod === "card", note: "",
+      etaMin: cartBase.etaMin, etaMax: cartBase.etaMax, status: "Processing", paid: false, note: "Browser preview — no payment processed",
       codPaid: 0, freightPaid: 0,
       /* stamp the exact units that left the shelf onto the order */
       serials: config.serialTracking ? cart.flatMap((l) => consumeSerials(l.id, l.qty, "sold", "TX-" + seq)) : [],
@@ -5045,6 +5071,7 @@ export default function App() {
   const methodName = (id) => (config.methods.find((m) => m.id === id) || {}).name || "-";
   const goShop = (cat, keepQuery) => {
     setCategory(cat || "All"); setBrand("All"); setSpecial("none"); setPage(1); setNavDD(null);
+    setInStockOnly(false); setMinRating(0); setPriceLo(0); setPriceHi(0); setTagFilter([]); setMobileFilters(false);
     /* a menu click is a fresh start. Leaving the old search term applied is what
        made the shop come up empty with no visible reason. */
     if (!keepQuery) setQuery("");
@@ -5054,6 +5081,7 @@ export default function App() {
   };
   const navSpecial = (sp) => {
     setSpecial(sp); setCategory("All"); setBrand("All"); setPage(1); setNavDD(null); setQuery("");
+    setCats([]); setBrands([]); setInStockOnly(false); setMinRating(0); setPriceLo(0); setPriceHi(0); setTagFilter([]); setMobileFilters(false);
     setView("store"); setStoreView("shop"); setMobileMenu(false);
     window.scrollTo(0, 0);
   };
@@ -7102,7 +7130,7 @@ export default function App() {
     return (
       <article className="card tilt" key={p.id} style={{ animationDelay: Math.min(i * 24, 300) + "ms" }}>
         <div className="card-media" onClick={() => openProduct(p.id)} role="button" tabIndex={0}
-             onKeyDown={(e) => { if (e.key === "Enter") openProduct(p.id); }}>
+             aria-label={"View " + p.name} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openProduct(p.id); } }}>
           <span className="glow" /><span className="pad" />
           {(() => {
             const frames = galleryFrames(p);
@@ -7129,18 +7157,19 @@ export default function App() {
             {p.featured && !p.isNew && inf.offPct === 0 && <span className="pill line">Pick</span>}
           </div>
           <div className="card-acts" onClick={(e) => e.stopPropagation()}>
-            <button className={"mini " + (wished ? "on" : "")} onClick={() => toggleWish(p.id)} aria-label="Save to wishlist">
+            <button className={"mini " + (wished ? "on" : "")} onClick={() => toggleWish(p.id)} aria-pressed={wished} aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}>
               <Heart size={14} fill={wished ? "currentColor" : "none"} />
             </button>
-            <button className={"mini cmp " + (cmp ? "on" : "")} onClick={() => toggleCompare(p.id)} aria-label="Add to compare">
+            <button className={"mini cmp " + (cmp ? "on" : "")} onClick={() => toggleCompare(p.id)} aria-pressed={cmp} aria-label={cmp ? "Remove from compare" : "Add to compare"}>
               <Scale size={14} />
             </button>
           </div>
           {out && <div className="soldout-ov"><span>SOLD OUT</span></div>}
+          <button className="ed-card-quick" aria-label={"Quick view " + p.name} onClick={e => { e.stopPropagation(); setQuickId(p.id); setRecent(r => [p.id, ...r.filter(id => id !== p.id)].slice(0, 8)); }}><Eye size={14} /> Quick view</button>
         </div>
         <div className="card-body">
           <div className="lb-main">
-            <h3 onClick={() => openProduct(p.id)}>{p.name}</h3>
+            <h3><button onClick={() => openProduct(p.id)}>{p.name}</button></h3>
             <div className="card-sub">{subtitleOf(p)}</div>
             <div className="card-rate">
               {renderStars(p.rating, 12)}
@@ -7217,103 +7246,30 @@ export default function App() {
     </div>
   );
 
-  const renderNav = () => (
-    <div className="topwrap"><div className="wrap" style={{ padding: 0 }}><nav className={"nav" + (scrolled ? " scrolled" : "")}>
-      <div className="logo" onClick={() => { setStoreView("shop"); window.scrollTo(0, 0); }}>
-        {brandMark(19)}
-        <span className="logo-tx">{config.storeName}<i>{config.storeSub}</i></span>
-      </div>
-
-      <div className="nav-links">
-        <div><button className={"nlink " + (storeView === "shop" && category === "All" && special === "none" && !query ? "on" : "")}
-                     onClick={() => { setStoreView("home"); window.scrollTo(0, 0); }}>Home</button></div>
-        <div><button className={"nlink " + (storeView === "shop" ? "on" : "")} onClick={() => goShop("All")}>Shop</button></div>
-        {navMenu("cats", "Categories", (
-          <>
-            <div className="dd-h">Browse the full catalog</div>
-            {children.map((c) => {
-              const I = iconOf(c.iconKey);
-              return (
-                <button className="dd-item" key={c.id} onClick={() => { setNavDD(null); goShop(c.id); }}>
-                  <span className="ic"><I size={15} /></span>{c.label}<span className="ct">{catCount(c.id)}</span>
-                </button>
-              );
-            })}
-          </>
-        ))}
-        <div><button className={"nlink " + (special === "new" ? "on" : "")} onClick={() => navSpecial("new")}>New Arrivals</button></div>
-        <div><button className={"nlink " + (special === "deals" ? "on" : "")} onClick={() => navSpecial("deals")}>Deals</button></div>
-        {navMenu("explore", "Explore", (
-          <>
-            <div className="dd-h">Your account</div>
-            <button className="dd-item" onClick={() => { setNavDD(null); setStoreView("wishlist"); window.scrollTo(0, 0); }}>
-              <span className="ic"><Heart size={15} /></span>Wishlist<span className="ct">{wishlist.length}</span>
-            </button>
-            <button className="dd-item" onClick={() => { setNavDD(null); setStoreView("track"); window.scrollTo(0, 0); }}>
-              <span className="ic"><Truck size={15} /></span>Track an order
-            </button>
-            <button className="dd-item" onClick={() => { setNavDD(null); setCompareOpen(true); }}>
-              <span className="ic"><Scale size={15} /></span>Compare<span className="ct">{compare.length}</span>
-            </button>
-            <div className="dd-h">Store</div>
-            <button className="dd-item" onClick={() => { setNavDD(null); openConsole(); }}>
-              <span className="ic"><Gauge size={15} /></span>Store console
-            </button>
-          </>
-        ))}
-      </div>
-
-      <div className="nav-search" onClick={(e) => e.stopPropagation()}>
-        <div className="box">
-          <Search size={15} color="var(--ink3)" />
-          <input placeholder="Search products..." value={navQuery}
-                 onChange={(e) => setNavQuery(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === "Enter" && navQuery.trim()) { goShop("All", true); setQuery(navQuery); setNavQuery(""); } }} />
-          <button className="go" onClick={() => { if (navQuery.trim()) { goShop("All", true); setQuery(navQuery); setNavQuery(""); } }} aria-label="Search">
-            <Search size={14} />
-          </button>
-        </div>
-        {suggestions.length > 0 && (
-          <div className="suggest">
-            {suggestions.map((p) => { const I = productIcon(p); return (
-              <button className="sg" key={p.id} onClick={() => { openProduct(p.id); setNavQuery(""); }}>
-                <span className="ic"><I size={17} /></span>
-                <span style={{ minWidth: 0 }}><span className="nm">{p.name}</span><span className="mt">{subtitleOf(p)}</span></span>
-                <span className="pr">{money(pInfo(p).final)}</span>
-              </button>
-            ); })}
-          </div>
-        )}
-        {navQuery.trim().length >= 2 && suggestions.length === 0 && (
-          <div className="suggest"><div className="none">Nothing matches "{navQuery}". Try a brand or category.</div></div>
-        )}
-      </div>
-
-      <div className="nav-ic">
-        <button className="nib" onClick={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }} title="My orders" aria-label="Account"><User size={18} /></button>
-        <button className="nib" onClick={() => { setStoreView("wishlist"); window.scrollTo(0, 0); }} aria-label="Wishlist">
-          <Heart size={18} />{wishlist.length > 0 && <span className="badge violet">{wishlist.length}</span>}
-        </button>
-        <button className="nib cart" onClick={() => setCartOpen(true)} aria-label="Cart">
-          <ShoppingCart size={18} />{cartCount > 0 && <span className="badge pop" key={cartPulse}>{cartCount}</span>}
-        </button>
-        <button className="nib menu-btn" onClick={() => setMobileMenu(true)} aria-label="Menu"><Menu size={19} /></button>
-      </div>
-    </nav></div></div>
-  );
+  const renderNav = () => <StoreHeader config={config} products={products} categories={parents}
+    active={storeView} special={special} cartCount={cartCount} wishCount={wishlist.length}
+    onHome={() => { setStoreView("home"); setMobileMenu(false); window.scrollTo(0, 0); }}
+    onShop={goShop} onSpecial={navSpecial} onProduct={openProduct}
+    onSearch={(value) => { goShop("All", true); setQuery(value); }}
+    onCart={() => setCartOpen(true)} onWish={() => { setStoreView("wishlist"); window.scrollTo(0, 0); }}
+    onAccount={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }}
+    onMenu={() => setMobileMenu(true)} onTrade={() => { setStoreView("b2b"); window.scrollTo(0, 0); }}
+    onFinder={() => setFinderOpen(true)}
+    money={p => money(pInfo(p).final)} />;
 
   const renderMobileMenu = () => (
-    <div className="mmenu">
+    <div className="mmenu" role="dialog" aria-modal="true" aria-label="Navigation menu" tabIndex={-1}>
       <div className="mmenu-top">
         <div className="logo">{brandMark(18)}<span className="logo-tx">{config.storeName}</span></div>
-        <button className="iconbtn" onClick={() => setMobileMenu(false)}><X size={18} /></button>
+        <button className="iconbtn" aria-label="Close menu" onClick={() => setMobileMenu(false)}><X size={18} /></button>
       </div>
       <div className="searchbox" style={{ marginBottom: 18 }}>
         <Search size={16} color="var(--ink3)" />
-        <input placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") goShop("All"); }} />
+        <input placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); goShop("All", true); } }} />
       </div>
       <button className="ml" onClick={() => { setStoreView("home"); setMobileMenu(false); window.scrollTo(0, 0); }}>Home <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => goShop("All")}>Shop all <ChevronRight size={17} /></button>
+      <button className="ml" onClick={() => { setMobileMenu(false); setFinderOpen(true); }}>Find my upgrade <Sparkles size={17} /></button>
       {children.map((c) => <button className="ml" key={c.id} onClick={() => goShop(c.id)}>{c.label} <ChevronRight size={17} /></button>)}
       <button className="ml" onClick={() => navSpecial("new")}>New arrivals <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => navSpecial("deals")}>Deals <ChevronRight size={17} /></button>
@@ -7325,107 +7281,10 @@ export default function App() {
   );
 
   /* ══════════════════════════ HERO ══════════════════════════ */
-  const HERO_SLIDES = [
-    {
-      tag: "Next level gear",
-      h1: ["Upgrade your", "digital", "experience"],
-      lead: "Premium gadgets and accessories engineered for performance, style, and the future. Stocked in Pakistan and checked before dispatch.",
-      cta: "Shop Now", action: () => goShop("All"),
-      icons: [[Headphones, "a"], [Keyboard, "b"], [Mouse, "c"]],
-    },
-    {
-      tag: "Power, sorted",
-      h1: ["Charge every", "device", "from one brick"],
-      lead: "GaN chargers, USB4 cables and Thunderbolt docks rated for daily abuse. One plug, a whole desk running.",
-      cta: "Shop Power", action: () => goShop("grp_power"),
-      icons: [[Cable, "a"], [BatteryCharging, "b"], [Usb, "c"]],
-    },
-    {
-      tag: "Built for the desk",
-      h1: ["Gear that earns", "its space", "on your desk"],
-      lead: "Mechanical boards, precision pointers and risers that make a long working day feel considerably shorter.",
-      cta: "Shop Desk", action: () => goShop("grp_desk"),
-      icons: [[Monitor, "a"], [Keyboard, "b"], [Speaker, "c"]],
-    },
-  ];
-
-  const renderHero = () => {
-    const s = HERO_SLIDES[heroSlide % HERO_SLIDES.length];
-    const liveSkus = products.filter((p) => p.active).length;
-    const dealCount = products.filter((p) => p.active && pInfo(p).offPct > 0).length;
-    return (
-      <section className="wrap" style={{ paddingTop: 6 }}>
-        <header className="hero parx"
-                onMouseEnter={() => setHeroPaused(true)}
-                onMouseLeave={() => setHeroPaused(false)}>
-          <div className="hero-dots">
-            {HERO_SLIDES.map((_, i) => (
-              <button key={i} className={heroSlide === i ? "on" : ""} onClick={() => goHeroSlide(i)} aria-label={"Slide " + (i + 1)}>
-                <span className="hd-fill" style={{ animationPlayState: heroSlide === i && !heroPaused ? "running" : "paused" }} />
-              </button>
-            ))}
-          </div>
-          <button className="hero-arrow prev" onClick={() => goHeroSlide(heroSlide - 1)} aria-label="Previous slide"><ChevronLeft size={18} /></button>
-          <button className="hero-arrow next" onClick={() => goHeroSlide(heroSlide + 1)} aria-label="Next slide"><ChevronRight size={18} /></button>
-          <div className="hero-in" key={heroSlide}>
-            <div className="hero-copy"><div style={{ animation: "fadeUp .5s both" }}>
-              <span className="hero-tag"><span className="dot" /> {s.tag}</span>
-              <h1>{s.h1[0]}<br /><span className="gtext">{s.h1[1]}</span>{s.h1[2]}</h1>
-              <p className="lead">{s.lead}</p>
-              <div className="hero-cta">
-                <button className="btn btn-pri btn-cta" onClick={s.action}>
-                  <span className="knob"><ArrowRight size={16} /></span> {s.cta}
-                </button>
-                <button className="btn btn-lg" onClick={() => navSpecial("deals")}>
-                  Explore Deals <ChevronRight size={15} />
-                </button>
-              </div>
-            </div></div>
-            <div className="hero-stage">{renderPodium(s.icons)}</div>
-          </div>
-          <div className="trust parx-trust">
-            {[[Gem, "Premium Quality", "Top-tier materials"],
-              [Truck, "Free Shipping", "On orders over " + money(config.freeShipThreshold)],
-              [Headset, "24/7 Support", "We're here to help"],
-              [ShieldCheck, "Secure Checkout", "100% protected"]].map(([I, t, sub], i) => (
-              <div className="trust-cell" key={i} style={{ "--ti": i }}>
-                <span className="ic"><I size={17} /></span>
-                <div><div className="t">{t}</div><div className="s">{sub}</div></div>
-              </div>
-            ))}
-          </div>
-        </header>
-        <p className="hint" style={{ textAlign: "center", marginTop: 10 }}>
-          {liveSkus} products live · {dealCount} currently discounted
-        </p>
-      </section>
-    );
-  };
+  const renderHero = () => <StoreHero onShop={goShop} config={config} onCompare={() => setCompareOpen(true)} onFinder={() => setFinderOpen(true)} />;
 
   /* ══════════════════════════ CATEGORY ROW ══════════════════════════ */
-  const renderCategoryRow = () => (
-    <section className="section tight reveal"><div className="wrap">
-      <div className="catrow">
-        {children.filter((c) => c.featured).slice(0, 4).map((c) => {
-          const I = iconOf(c.iconKey);
-          return (
-            <button className="catcard tilt" key={c.id} onClick={() => goShop(c.id)}>
-              <div style={{ minWidth: 0 }}>
-                <div className="cc-t">{c.label}</div>
-                <div className="cc-d">{c.blurb}</div>
-              </div>
-              <span className="cc-art">
-                {c.image
-                  ? <img src={c.image} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                  : <I size={26} strokeWidth={1.3} />}
-              </span>
-              <span className="cc-go"><ArrowRight size={15} /></span>
-            </button>
-          );
-        })}
-      </div>
-    </div></section>
-  );
+  const renderCategoryRow = () => <CollectionGrid categories={categories} onShop={goShop} count={catCount} />;
 
   /* ══════════════════════════ FEATURED ══════════════════════════ */
   /* ══════════════════════════ SHOWREEL ══════════════════════════
@@ -7663,6 +7522,7 @@ export default function App() {
   };
 
   const renderFeatured = () => {
+    if (!products.some(p => p.active)) return <CollectionSpotlights categories={categories} onShop={goShop} />;
     const tabs = [["best", "Best sellers"], ["new", "Just landed"], ["top", "Top rated"], ["deals", "On sale"]];
     const list = featured[featTab] || [];
     return (
@@ -7670,7 +7530,7 @@ export default function App() {
         <div className="sec-head">
           <div className="sec-title">
             <span className="dashes"><i /><i /></span>
-            <h2>Featured Products</h2>
+            <h2>Your next great find.</h2>
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <div className="ftabs">{tabs.map(([k, l]) => <button key={k} className={featTab === k ? "on" : ""} onClick={() => setFeatTab(k)}>{l}</button>)}</div>
@@ -7678,54 +7538,22 @@ export default function App() {
           </div>
         </div>
         {list.length === 0
-          ? <div className="empty"><Sparkles size={34} color="var(--ink3)" strokeWidth={1.3} /><h4>Nothing here yet</h4><p>Run a promotion from the console and discounted products appear in this tab.</p></div>
+          ? <div className="empty"><Sparkles size={34} color="var(--ink3)" strokeWidth={1.3} /><h4>{featTab === "deals" ? "More good things are on the way" : "Watch this space"}</h4><p>{featTab === "deals" ? "Explore the full collection while we prepare our next offers." : "Our next arrivals will appear here. Contact our team if you are looking for something specific."}</p><button className="btn btn-pri" onClick={() => goShop("All")}>Explore all products <ArrowRight size={15} /></button></div>
           : <div className="grid five">{list.slice(0, 5).map(renderCard)}</div>}
       </div></section>
     );
   };
 
   /* ══════════════════════════ BANDS ══════════════════════════ */
-  const renderNewsBand = () => (
-    <section className="section tight reveal"><div className="wrap">
-      <div className="band">
-        <span className="orb" />
-        <span className="hexi"><Hexagon size={26} color="#fff" strokeWidth={1.8} /></span>
-        <div className="bh">Level up<span>your setup</span></div>
-        <div className="bm">
-          <div className="t">Get 10% off your first order</div>
-          <div className="s">Join the Epic list and be first to know about new drops, exclusive deals, and restocks.</div>
-        </div>
-        <div className="news">
-          <input placeholder="Enter your email" onKeyDown={(e) => { if (e.key === "Enter") { pushToast("You're on the list. Welcome to the Club", Sparkles); e.target.value = ""; } }} />
-          <button className="btn btn-pri" onClick={() => pushToast("You're on the list. Welcome to the Club", Sparkles)}>Join Now</button>
-        </div>
-      </div>
-    </div></section>
-  );
+  const renderNewsBand = () => <RestockRequest config={config} onNotify={msg => pushToast(msg, Info)} />;
 
   const renderDealBand = () => {
-    const { d, h, m, s: sec } = countdown;
-    const best = Math.max(0, ...products.filter((p) => p.active).map((p) => pInfo(p).offPct));
-    return (
-      <div className="band" style={{ marginTop: 18 }}>
-        <span className="orb" />
-        <span className="hexi"><Flame size={26} color="#fff" strokeWidth={1.8} /></span>
-        <div className="bh">Level up<span>save big</span></div>
-        <div className="bm">
-          <div className="t">Up to {best}% off on select gear</div>
-          <div className="s">Limited-time offers on top-rated tech, applied automatically at the shelf price.</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11.5, color: "#A9B7D6", marginBottom: 7, fontWeight: 600 }}>Offer ends in:</div>
-          <div className="countdown">
-            {[[d, "Days"], [h, "Hours"], [m, "Mins"], [sec, "Secs"]].map(([v, k]) => (
-              <div className="cd-cell" key={k}><div className="v">{String(v).padStart(2, "0")}</div><div className="k">{k}</div></div>
-            ))}
-          </div>
-        </div>
-        <button className="btn btn-pri btn-lg" onClick={() => navSpecial("deals")}>Shop Deals</button>
-      </div>
-    );
+    const best = Math.max(0, ...products.filter(p => p.active).map(p => pInfo(p).offPct));
+    if (!best) return null;
+    return <div className="band" style={{ marginTop: 24, borderRadius: 14 }}>
+      <div className="bm"><div className="t">A little more epic. A little less.</div><div className="s">Explore current offers with savings up to {best}% on selected devices.</div></div>
+      <button className="btn btn-pri" onClick={() => navSpecial("deals")}>Explore offers <ArrowUpRight size={17} /></button>
+    </div>;
   };
 
   /* ══════════════════════════ SHOP PAGE ══════════════════════════ */
@@ -7745,10 +7573,10 @@ export default function App() {
             <div>
               <h1>{cat
                 ? <><span className="gtext">{cat.label}</span></>
-                : <><span className="gtext">Shop</span> Premium Tech</>}</h1>
+                : <>{special === "deals" ? "Discover a great deal." : special === "new" ? "Meet the newest arrivals." : "Find your next upgrade."}</>}</h1>
               <p>{cat && cat.blurb
                 ? cat.blurb
-                : "Curated innovations. Premium performance. Built for what's next, with nationwide delivery in one to five days."}</p>
+                : "Thoughtful devices for work, play and everything in between. Find the right fit for your everyday."}</p>
             </div>
             {media
               ? <div className="sh-media">
@@ -7795,7 +7623,7 @@ export default function App() {
     const leftPct = ((loBound - priceBounds.min) / span) * 100;
     const rightPct = ((hiBound - priceBounds.min) / span) * 100;
     return (
-      <aside className="filters">
+      <aside className="filters" id="catalog-filters">
         <div className="filters-h">
           <h3>Filters</h3>
           <button onClick={clearFilters}>Reset All <RotateCcw size={13} /></button>
@@ -7884,7 +7712,7 @@ export default function App() {
                   <span className="ct">{count}</span>
                 </button>
               ))}
-              {tagFacets.length === 0 && <p className="hint" style={{ margin: 0 }}>Tag products in the console and they become filterable here.</p>}
+              {tagFacets.length === 0 && <p className="hint" style={{ margin: 0 }}>Product features will appear with the collection.</p>}
             </div>
           )}
         </div>
@@ -7951,8 +7779,9 @@ export default function App() {
     const start = (catPage - 1) * PER_PAGE;
     return (
       <section className="section tight" id="catalog"><div className="wrap">
-        <div className="shop-grid">
-          {renderFilters()}
+        {products.some(p => p.active) && <button className="ed-filter-toggle" aria-expanded={mobileFilters} aria-controls="catalog-filters" onClick={() => setMobileFilters(!mobileFilters)}><List size={16} /> {mobileFilters ? "Hide filters" : "Filter products"}{activeFilterCount > 0 && <span>({activeFilterCount})</span>}</button>}
+        <div className={"shop-grid" + (mobileFilters ? " ed-filters-open" : "") + (!products.some(p => p.active) ? " ed-no-products" : "")}>
+          {products.some(p => p.active) && renderFilters()}
           <div style={{ minWidth: 0 }}>
             <div className="shop-top">
               <span className="cnt">
@@ -7991,9 +7820,9 @@ export default function App() {
             {catalogSource.length === 0 ? (
               <div className="empty">
                 <Search size={38} color="var(--ink3)" strokeWidth={1.2} />
-                <h4>No products match these filters</h4>
-                <p>Widen the price range or drop a filter to see more of the catalog.</p>
-                <button className="btn btn-pri" onClick={clearFilters}><RotateCcw size={14} /> Reset filters</button>
+                <h4>{products.some(p => p.active) ? "No products match just yet" : "Your next upgrade is on its way"}</h4>
+                <p>{products.some(p => p.active) ? "Try another search or remove a filter to explore more of the collection." : "We are getting the collection ready. Contact our team for current availability and help finding the right device."}</p>
+                {products.some(p => p.active) ? <button className="btn btn-pri" onClick={clearFilters}><RotateCcw size={14} /> Reset filters</button> : <a className="btn btn-pri" href={"mailto:" + config.storeEmail}>Ask about availability <ArrowUpRight size={16} /></a>}
               </div>
             ) : (
               <>
@@ -8060,69 +7889,11 @@ export default function App() {
   };
 
   /* ══════════════════════════ FOOTER ══════════════════════════ */
-  const renderFooter = () => (
-    <footer className="footer"><div className="wrap">
-      <div className="foot-grid">
-        <div>
-          <div className="logo" style={{ marginBottom: 14 }}>
-            {brandMark(19)}
-            <span className="logo-tx">{config.storeName}<i>{config.storeSub}</i></span>
-          </div>
-          <p style={{ fontSize: 13.5, lineHeight: 1.65, maxWidth: 290, color: "var(--ink2)" }}>
-            Elevating your digital life with premium gear and innovation. Genuine stock, checked before dispatch, backed for a year.
-          </p>
-          <div className="socials">
-            {[Instagram, Twitter, Facebook, Youtube].map((I, i) => (
-              <button key={i} onClick={() => pushToast("Social links are placeholders in this demo", Info)} aria-label="Social link"><I size={16} /></button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h4>Shop</h4>
-          <button className="fl" onClick={() => goShop("All")}>All Products</button>
-          <button className="fl" onClick={() => navSpecial("new")}>New Arrivals</button>
-          <button className="fl" onClick={() => { setSort("Best selling"); goShop("All"); }}>Best Sellers</button>
-          <button className="fl" onClick={() => navSpecial("deals")}>Deals</button>
-        </div>
-        <div>
-          <h4>Categories</h4>
-          {children.slice(0, 5).map((c) => <button className="fl" key={c.id} onClick={() => goShop(c.id)}>{c.label}</button>)}
-        </div>
-        <div>
-          <h4>Support</h4>
-          <button className="fl" onClick={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }}>My Orders</button>
-          <button className="fl" onClick={() => { setStoreView("b2b"); window.scrollTo(0, 0); }}>B2B &amp; Wholesale</button>
-          <button className="fl" onClick={() => { setStoreView("track"); window.scrollTo(0, 0); }}>Track Order</button>
-          <button className="fl" onClick={() => pushToast("Returns run 7 days from delivery", RotateCcw)}>Shipping & Returns</button>
-          <button className="fl" onClick={() => pushToast("Warranty is 12 months on most SKUs", ShieldCheck)}>Warranty</button>
-          <button className="fl" onClick={() => pushToast("Delivery takes 1-5 days depending on zone", Truck)}>Help Center</button>
-        </div>
-        <div>
-          <h4>Company</h4>
-          <button className="fl" onClick={() => pushToast("Epic Devices is a demo storefront", Info)}>About Us</button>
-          <button className="fl" onClick={() => pushToast("Epic Devices is a demo storefront", Info)}>Careers</button>
-          <button className="fl" onClick={() => pushToast("Epic Devices is a demo storefront", Info)}>Press</button>
-          <button className="fl" onClick={openConsole}>Store Console</button>
-        </div>
-        <div>
-          <h4>Stay in the Loop</h4>
-          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--ink2)" }}>Subscribe for restock alerts and exclusive offers. One email, nothing else.</p>
-          <div className="foot-news">
-            <input placeholder="Enter your email" onKeyDown={(e) => { if (e.key === "Enter") { pushToast("You're on the restock list", Bell); e.target.value = ""; } }} />
-            <button className="go" onClick={() => pushToast("You're on the restock list", Bell)} aria-label="Subscribe"><ArrowRight size={17} /></button>
-          </div>
-        </div>
-      </div>
-      <div className="foot-bot">
-        <span>© {new Date().getFullYear()} {config.storeName} · Lahore, Pakistan</span>
-        <div className="links">
-          <button onClick={() => pushToast("Demo storefront. No real terms apply", Info)}>Terms of Service</button>
-          <button onClick={() => pushToast("Demo storefront. No data is collected", ShieldCheck)}>Privacy Policy</button>
-          <button onClick={() => pushToast("Demo storefront. No cookies are set", Info)}>Cookie Policy</button>
-        </div>
-      </div>
-    </div></footer>
-  );
+  const renderFooter = () => <StoreFooter config={config} categories={categories}
+    onHome={() => { setStoreView("home"); window.scrollTo(0, 0); }} onShop={goShop} onSpecial={navSpecial}
+    onAccount={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }}
+    onTrack={() => { setStoreView("track"); window.scrollTo(0, 0); }}
+    onTrade={() => { setStoreView("b2b"); window.scrollTo(0, 0); }} onConsole={openConsole} onInfo={setInfoTopic} />;
 
   /* ══════════════════════════ PRODUCT DETAIL ══════════════════════════ */
   const renderProductDetail = () => {
@@ -8254,7 +8025,7 @@ export default function App() {
                   <div className="qty pd-qty">
                     <button onClick={() => setPdQty((q) => Math.max(1, q - 1))} disabled={pdQty <= 1} aria-label="Fewer"><Minus size={14} /></button>
                     <span className="mono">{pdQty}</span>
-                    <button onClick={() => setPdQty((q) => Math.min(10, q + 1))} disabled={pdQty >= 10} aria-label="More"><Plus size={14} /></button>
+                    <button onClick={() => setPdQty((q) => Math.min(p.stock, 10, q + 1))} disabled={pdQty >= Math.min(p.stock, 10)} aria-label="More"><Plus size={14} /></button>
                   </div>
                   <button className="btn btn-pri btn-lg pd-cta" disabled={out}
                           onClick={() => { addToCart(p.id, pdQty); setCartOpen(true); }}>
@@ -8270,8 +8041,8 @@ export default function App() {
 
                 <div className="pd-trust">
                   <div><span className="tk"><ShieldCheck size={15} /></span><b>{p.warranty} month warranty</b><small>Covered by the brand</small></div>
-                  <div><span className="tk"><RotateCcw size={15} /></span><b>{config.returnWindowDays} day returns</b><small>{config.storePaysReturnFreight ? "We pay the pickup" : "Return postage on you"}</small></div>
-                  <div><span className="tk"><Banknote size={15} /></span><b>Cash on delivery</b><small>Pay the rider, nationwide</small></div>
+                  <div><span className="tk"><RotateCcw size={15} /></span><b>{config.returnWindowDays} day returns</b><small>{config.deliveries ? (config.storePaysReturnFreight ? "Return pickup available" : "Return postage applies") : "Contact our team to arrange"}</small></div>
+                  <div><span className="tk"><Banknote size={15} /></span><b>{config.deliveries ? "Cash on delivery" : "Store collection"}</b><small>{config.deliveries ? "Pay when your order arrives" : "Collect from our Lahore store"}</small></div>
                 </div>
 
                 {p.tags.length > 0 && (
@@ -8344,10 +8115,10 @@ export default function App() {
     return (
       <>
         <div className="overlay" onClick={() => setCartOpen(false)} />
-        <aside className="drawer" role="dialog" aria-label="Cart">
+        <aside className="drawer" role="dialog" aria-modal="true" aria-label="Shopping bag" tabIndex={-1}>
           <div className="drawer-head">
             <h3><ShoppingBag size={19} color="var(--blue)" /> Your cart <span className="pill soft">{cartCount} item{cartCount === 1 ? "" : "s"}</span></h3>
-            <button className="modal-x" onClick={() => setCartOpen(false)}><X size={17} /></button>
+            <button className="modal-x" aria-label="Close bag" onClick={() => setCartOpen(false)}><X size={17} /></button>
           </div>
           <div className="drawer-body">
             {cart.length === 0 ? (
@@ -8359,28 +8130,28 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div className="ship-prog">
+                {config.deliveries && <div className="ship-prog">
                   <div className="t">
                     <span>{cartBase.free ? "Free standard shipping unlocked" : "Spend " + money(remaining) + " more for free shipping"}</span>
                     <b>{Math.min(100, Math.round((cartBase.subtotal / config.freeShipThreshold) * 100))}%</b>
                   </div>
                   <Meter value={cartBase.subtotal} max={config.freeShipThreshold} seg={22} tone="" />
-                </div>
+                </div>}
                 {cart.map((l) => {
                   const p = byId[l.id]; if (!p) return null;
                   const I = productIcon(p), inf = pInfo(p);
                   return (
                     <div className="line" key={l.id}>
-                      <span className="line-media"><I size={23} strokeWidth={1.3} /></span>
+                      <span className="line-media">{p.image ? <img src={p.image} alt="" /> : <I size={23} strokeWidth={1.3} />}</span>
                       <div className="line-info">
                         <div className="b">{p.brand}</div>
                         <div className="n">{p.name}</div>
                         <div className="p">{money(inf.final)} each</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9 }}>
                           <div className="qty">
-                            <button onClick={() => setQty(l.id, l.qty - 1)} aria-label="Decrease"><Minus size={13} /></button>
+                            <button disabled={l.qty <= 1} onClick={() => setQty(l.id, l.qty - 1)} aria-label="Decrease quantity"><Minus size={13} /></button>
                             <span>{l.qty}</span>
-                            <button onClick={() => setQty(l.id, l.qty + 1)} aria-label="Increase"><Plus size={13} /></button>
+                            <button disabled={l.qty >= p.stock} onClick={() => setQty(l.id, l.qty + 1)} aria-label="Increase quantity"><Plus size={13} /></button>
                           </div>
                           <button className="btn btn-ghost btn-xs" onClick={() => removeLine(l.id)}><Trash2 size={12} /> Remove</button>
                         </div>
@@ -8395,7 +8166,7 @@ export default function App() {
           {cart.length > 0 && (
             <div className="drawer-foot">
               <div className="sum-row"><span className="k">Subtotal</span><span className="v">{money(cartBase.subtotal)}</span></div>
-              <div className="sum-row"><span className="k">Shipping to {form.city}</span><span className="v">{cartBase.free ? <span className="pill ok">FREE</span> : money(cartBase.shipping)}</span></div>
+              <div className="sum-row"><span className="k">{config.deliveries ? "Shipping to " + form.city : "Store collection"}</span><span className="v">{cartBase.free ? <span className="pill ok">FREE</span> : money(cartBase.shipping)}</span></div>
               {codeDiscount > 0 && <div className="sum-row disc"><span className="k">Code {appliedPromo.code}</span><span className="v">−{money(codeDiscount)}</span></div>}
               <div className="sum-row total"><span>Total</span><span className="v">{money(cartFinalTotal)}</span></div>
               <button className="btn btn-pri btn-lg btn-block" style={{ marginTop: 12 }} onClick={goCheckout}>Checkout <ArrowRight size={16} /></button>
@@ -8427,51 +8198,10 @@ export default function App() {
     );
   };
 
-  const renderCompareModal = () => {
-    if (!compareOpen) return null;
-    const list = compare.map((id) => byId[id]).filter(Boolean);
-    const lowest = Math.min(...list.map((p) => pInfo(p).final));
-    const bestRate = Math.max(...list.map((p) => p.rating));
-    const specKeys = Array.from(new Set(list.flatMap((p) => (p.specs || []).map((s) => s[0])))).filter(Boolean);
-    return (
-      <div className="modal-wrap" onClick={() => setCompareOpen(false)}>
-        <div className="modal xl" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-head">
-            <span className="mh-ic"><Scale size={17} /></span>
-            <div><div className="mh-t">Compare products</div><div className="mh-s">{list.length} selected</div></div>
-            <button className="modal-x" onClick={() => setCompareOpen(false)}><X size={16} /></button>
-          </div>
-          <div className="modal-body" style={{ padding: 0, overflowX: "auto" }}>
-            {list.length < 2 ? (
-              <div className="empty"><Scale size={34} color="var(--ink3)" strokeWidth={1.3} /><h4>Pick at least two products</h4><p>Use the scale icon on any product card to add it here.</p></div>
-            ) : (
-              <table className="cmp-table">
-                <thead><tr><th style={{ width: 150 }}>Attribute</th>{list.map((p) => <th key={p.id}>{p.name}</th>)}</tr></thead>
-                <tbody>
-                  <tr><td>Brand</td>{list.map((p) => <td key={p.id}>{p.brand}</td>)}</tr>
-                  <tr><td>Type</td>{list.map((p) => <td key={p.id}>{subtitleOf(p)}</td>)}</tr>
-                  <tr><td>Price</td>{list.map((p) => <td key={p.id} className={pInfo(p).final === lowest ? "best" : ""}>{money(pInfo(p).final)}{pInfo(p).final === lowest && <span className="pill blue" style={{ marginLeft: 6 }}>Lowest</span>}</td>)}</tr>
-                  <tr><td>Rating</td>{list.map((p) => <td key={p.id} className={p.rating === bestRate ? "best" : ""}>{p.rating.toFixed(1)} ({p.reviews.toLocaleString("en-US")})</td>)}</tr>
-                  <tr><td>Availability</td>{list.map((p) => <td key={p.id}>{stockLabel(p)}</td>)}</tr>
-                  <tr><td>Warranty</td>{list.map((p) => <td key={p.id}>{p.warranty} months</td>)}</tr>
-                  {specKeys.map((k) => (
-                    <tr key={k}><td>{k}</td>{list.map((p) => { const f = (p.specs || []).find((s) => s[0] === k); return <td key={p.id}>{f ? f[1] : "not listed"}</td>; })}</tr>
-                  ))}
-                  <tr><td></td>{list.map((p) => (
-                    <td key={p.id}><button className="btn btn-pri btn-sm" disabled={isSoldOut(p)} onClick={() => addToCart(p.id)}><Plus size={13} /> Add</button></td>
-                  ))}</tr>
-                </tbody>
-              </table>
-            )}
-          </div>
-          <div className="modal-foot">
-            <button className="btn btn-ghost" onClick={() => { setCompare([]); setCompareOpen(false); }}>Clear all</button>
-            <button className="btn btn-dark" onClick={() => setCompareOpen(false)}>Done</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const renderCompareModal = () => compareOpen ? <ProductCompare products={compare.map(id => byId[id]).filter(Boolean)}
+    priceOf={p => pInfo(p).final} money={money} categoryOf={catLabel} cart={cart}
+    onClose={() => setCompareOpen(false)} onRemove={toggleCompare} onClear={() => { setCompare([]); setCompareOpen(false); }}
+    onShop={() => { setCompareOpen(false); goShop("All"); }} onProduct={id => { setCompareOpen(false); openProduct(id); }} onAdd={addToCart} /> : null;
 
   /* ══════════════════════════ WISHLIST + TRACK ══════════════════════════ */
   const renderWishlist = () => {
@@ -8597,13 +8327,14 @@ export default function App() {
           <button style={{ background: "none", border: "none", color: "inherit", fontWeight: 500 }} onClick={() => goShop("All")}>Shop</button>
           <span>/</span><b>Checkout</b>
         </div>
+        <div className="ed-preview-note"><Info size={18} /><span>Checkout preview. This order stays in this browser session; no payment is collected or order sent to the store.</span></div>
         <div className="sec-head" style={{ marginBottom: 20 }}>
-          <div className="sec-title"><span className="dashes"><i /><i /></span><h2>Delivery & Payment</h2></div>
+          <div className="sec-title"><span className="dashes"><i /><i /></span><h2>{config.deliveries ? "Delivery & payment" : "Collection & payment"}</h2></div>
         </div>
         <div className="co-grid">
           <div>
             <div className="panel" style={{ marginBottom: 14 }}>
-              <h3><User size={17} /> Contact and address</h3>
+              <h3><User size={17} /> Your contact details</h3>
               <div className="form-row">
                 <div className="field"><label>Full name</label><input className="inp" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ahmed Raza" /></div>
                 <div className="field"><label>Email</label><input className="inp" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" /></div>
@@ -8616,7 +8347,7 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <div className="field"><label>Delivery address</label><textarea className="textarea" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="House / flat, street, area, landmark" /></div>
+              <div className="field"><label>{config.deliveries ? "Delivery address" : "Address for your order record"}</label><textarea className="textarea" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="House / flat, street, area, landmark" /></div>
               <div className="zone-info">
                 <div className="zn"><MapPin size={14} /> {cartBase.zone.name}</div>
                 <div className="zr">{cartBase.zone.region}</div>
@@ -8647,13 +8378,13 @@ export default function App() {
               {config.codEnabled && (
                 <button className={"method " + (form.paymentMethod === "cod" ? "on" : "")} onClick={() => setForm({ ...form, paymentMethod: "cod" })}>
                   <span className="radio" />
-                  <span><span className="m-name"><Banknote size={15} /> Cash on delivery</span><span className="m-eta">Pay the rider when it arrives</span></span>
+                  <span><span className="m-name"><Banknote size={15} /> {config.deliveries ? "Cash on delivery" : "Pay at collection"}</span><span className="m-eta">{config.deliveries ? "Pay when your order arrives" : "Confirm payment with the team at the store"}</span></span>
                 </button>
               )}
               {config.cardEnabled && (
                 <button className={"method " + (form.paymentMethod === "card" ? "on" : "")} onClick={() => setForm({ ...form, paymentMethod: "card" })}>
                   <span className="radio" />
-                  <span><span className="m-name"><CreditCard size={15} /> Card / bank transfer</span><span className="m-eta">Prepaid orders qualify for free express shipping</span></span>
+                  <span><span className="m-name"><CreditCard size={15} /> Card / bank transfer</span><span className="m-eta">Confirm payment instructions directly with the store</span></span>
                 </button>
               )}
             </div>
@@ -8695,7 +8426,7 @@ export default function App() {
               <div className="sum-row"><span className="k">Parcel weight</span><span className="v">{cartBase.weight.toFixed(2)} kg</span></div>
               <div className="sum-row total"><span>Total</span><span className="v">{money(cartFinalTotal)}</span></div>
               <button className="btn btn-pri btn-lg btn-block" style={{ marginTop: 14 }} onClick={placeOrder}>
-                <ShieldCheck size={17} /> Place order · {money(cartFinalTotal)}
+                <ShoppingBag size={17} /> Preview order · {money(cartFinalTotal)}
               </button>
               <p className="hint" style={{ textAlign: "center", marginTop: 10 }}>Arriving in {cartBase.etaMin}-{cartBase.etaMax} working days</p>
             </div>
@@ -8711,10 +8442,10 @@ export default function App() {
     return (
       <section className="section"><div className="wrap"><div className="confirm">
         <div className="ok"><Check size={36} strokeWidth={2.6} /></div>
-        <h2>Order placed</h2>
+        <h2>Order preview created</h2>
         <div style={{ textAlign: "center" }}><span className="oid">{o.id}</span></div>
         <p style={{ textAlign: "center", color: "var(--ink2)", fontSize: 14.5, marginBottom: 24 }}>
-          A confirmation is on its way to {o.customer.email}. Arriving in {o.etaMin}-{o.etaMax} working days to {o.customer.city}.
+          This preview is saved only for this browser session. No confirmation email was sent and no payment was collected. Contact the store to place a real order.
         </p>
         <div className="panel">
           {o.lines.map((l) => {
@@ -8728,10 +8459,10 @@ export default function App() {
               </div>
             );
           })}
-          <div className="sum-row" style={{ marginTop: 10 }}><span className="k">Shipping</span><span className="v">{o.shipping === 0 ? "FREE" : money(o.shipping)}</span></div>
+          <div className="sum-row" style={{ marginTop: 10 }}><span className="k">{config.deliveries ? "Shipping" : "Store collection"}</span><span className="v">{o.shipping === 0 ? "FREE" : money(o.shipping)}</span></div>
           {o.discount > 0 && <div className="sum-row disc"><span className="k">Discount {o.promoCode ? "(" + o.promoCode + ")" : ""}</span><span className="v">−{money(o.discount)}</span></div>}
-          <div className="sum-row total"><span>Paid</span><span className="v">{money(o.total)}</span></div>
-          <p className="hint" style={{ marginTop: 6 }}>{o.paymentMethod === "cod" ? "Pay the rider on delivery." : "Card payment received."}</p>
+          <div className="sum-row total"><span>Order total</span><span className="v">{money(o.total)}</span></div>
+          <p className="hint" style={{ marginTop: 6 }}>{config.deliveries ? "Confirm delivery and payment directly with the store." : "Confirm collection and payment directly with the store."}</p>
         </div>
         <div style={{ display: "flex", gap: 9, marginTop: 18, justifyContent: "center", flexWrap: "wrap" }}>
           <button className="btn btn-pri" onClick={() => goShop("All")}>Keep shopping</button>
@@ -8748,7 +8479,7 @@ export default function App() {
       <div className="login-card">
         <div className="login-lock"><Lock size={24} /></div>
         <h2>Store Console</h2>
-        <p className="ls">Catalog, orders and settings for {config.storeName}.</p>
+        <p className="ls">Catalog, orders and settings for {config.storeName}.</p><p className="ed-session-hint">Session preview · Changes reset when the page reloads.</p>
         {loginErr && <div className="login-err"><AlertTriangle size={14} /> {loginErr}</div>}
         <div className="field"><label>Username</label>
           <input className="inp" value={login.user} onChange={(e) => setLogin({ ...login, user: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") doLogin(); }} placeholder="admin" autoComplete="username" />
@@ -10319,6 +10050,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l"><h2>Delivery partners</h2><p>Rate cards, contacts and commercial terms for every courier you ship with.</p></div>
         </div>
         {/* the three things people actually come here to do, one click each */}
@@ -12637,6 +12369,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l"><h2>Expenses</h2><p>Everything posted here flows straight into the profit and loss statement.</p></div>
           <button className="btn btn-pri" onClick={newExpenseModal}><PlusCircle size={15} /> Record expense</button>
         </div>
@@ -14519,6 +14252,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l"><h2>People</h2><p>Profiles, salary structure and everything payroll reads from.</p></div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn" onClick={() => setTab("payroll")}><Banknote size={15} /> Run payroll</button>
@@ -14717,6 +14451,7 @@ export default function App() {
       return (
         <div>
           <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
             <div className="ct-l"><h2>Payroll run</h2><p>Adjust anyone's line before you post. Nothing is saved until you commit.</p></div>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn" onClick={() => setPayrunDraft(null)}>Discard</button>
@@ -14840,6 +14575,7 @@ export default function App() {
     return (
       <div>
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l"><h2>Payroll</h2><p>Run a month, adjust individual lines, and issue payslips.</p></div>
           <button className="btn btn-pri" onClick={() => openPayrun()}><PlusCircle size={15} /> New payroll run</button>
         </div>
@@ -15035,6 +14771,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l">
             <h2>Purchases</h2>
             <p>Stock in from suppliers and stock sent back. Buying inventory is not an expense, so this moves the balance sheet rather than the profit statement.</p>
@@ -15373,6 +15110,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l">
             <h2>Loans and advances</h2>
             <p>Installments are proposed automatically on every payroll run. A month can be skipped, doubled or set to any figure at the time you run it.</p>
@@ -15543,6 +15281,7 @@ export default function App() {
         </div>
 
         <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
           <div className="ct-l">
             <h2>Faulty &amp; damaged stock</h2>
             <p>Marking units faulty takes them off the shelf straight away so they cannot be sold. From here they go back to the supplier, get written off, or are repaired and returned.</p>
@@ -17912,8 +17651,10 @@ export default function App() {
   const renderConsole = () => {
     const title = TAB_TITLES[tab] || "Console";
     return (
-      <div className="cshell">
-        <aside className="rail">
+      <div className={"cshell" + (consoleMenu ? " ed-rail-open" : "")}>
+        {consoleMenu && <button className="ed-console-scrim" onClick={() => setConsoleMenu(false)} aria-label="Close console navigation" />}
+        <aside className="rail" aria-label="Console navigation">
+          <button className="ed-console-dismiss" onClick={() => setConsoleMenu(false)} aria-label="Close console navigation"><X size={18} /></button>
           <div className="rail-logo">
             {brandMark(17)}
             <span className="logo-tx">{config.storeName}<i>Console</i></span>
@@ -17923,7 +17664,7 @@ export default function App() {
               <div className="rail-sec">{sec}</div>
               {items.map(([id, label, Ic, count]) => (
                 <button key={id} className={"rail-btn " + (tab === id ? "on" : "")}
-                        onClick={() => { setTab(id); setSelected([]); window.scrollTo(0, 0); }} title={label}>
+                        onClick={() => { setTab(id); setSelected([]); setConsoleMenu(false); window.scrollTo(0, 0); }} title={label}>
                   <Ic size={16} /><span className="lb">{label}</span>
                   {count != null && count > 0 && <span className="ct">{count}</span>}
                 </button>
@@ -17944,6 +17685,7 @@ export default function App() {
 
         <div className="cmain">
           <div className="ctop">
+            <button className="ed-console-menu" aria-label="Open console navigation" aria-expanded={consoleMenu} onClick={() => setConsoleMenu(true)}><Menu size={20} /></button>
             <div>
               <div className="crumb">{config.storeName} / {title}</div>
               <h1>{title}</h1>
@@ -18043,19 +17785,22 @@ export default function App() {
   /* ══════════════════════════ COMPOSE ══════════════════════════ */
   const inConsole = view === "console" && authed;
   return (
-    <div className={"tx th-" + config.theme + (animOn ? " anim" : "")}>
-      <style>{CSS_A + CSS_B + CSS_C + CSS_D + themeCss(config.theme)}</style>
+    <div className={"tx epic-upgrade th-" + config.theme + (animOn ? " anim" : "")}>
+      <style>{CSS_A + CSS_B + CSS_C + CSS_D + themeCss(config.theme) + UPGRADE_CSS + EXPERIENCE_CSS}</style>
 
       {view === "store" && (
         <>
+          <a className="skip-link" href="#main-content">Skip to content</a>
           {renderAnnouncement()}
           {renderNav()}
           {mobileMenu && renderMobileMenu()}
 
+          <main id="main-content" tabIndex={-1}>
           {storeView === "home" && (
             <>
               {renderHero()}
               {renderCategoryRow()}
+              <DiscoveryStrip onFinder={() => setFinderOpen(true)} />
               {renderFeatured()}
               {renderNewsBand()}
               {renderPromoBanners()}
@@ -18078,7 +17823,16 @@ export default function App() {
           {storeView === "b2b" && renderB2BPage()}
           {storeView === "product" && renderProductDetail()}
 
+          </main>
           {renderFooter()}
+          <StoreInfo topic={infoTopic} onClose={() => setInfoTopic(null)} config={config} />
+          {finderOpen && <ProductFinder products={products} categories={categories} priceOf={p => pInfo(p).final} money={money} config={config}
+            onClose={() => setFinderOpen(false)} onProduct={id => { setFinderOpen(false); openProduct(id); }}
+            onBrowse={(cat, budget, available, sorting) => { setFinderOpen(false); goShop(cat); setPriceHi(budget); setInStockOnly(available); setSort(sorting); }} />}
+          {quickId && byId[quickId] && <QuickView key={quickId} product={byId[quickId]} info={pInfo(byId[quickId])} money={money} images={galleryFrames(byId[quickId])}
+            wished={wishlist.includes(quickId)} compared={compare.includes(quickId)} cartQuantity={cart.find(l => l.id === quickId)?.qty || 0} config={config}
+            onClose={() => setQuickId(null)} onAdd={addToCart} onWish={() => toggleWish(quickId)} onCompare={() => toggleCompare(quickId)}
+            onDetails={() => { setQuickId(null); openProduct(quickId); }} onBag={() => { setQuickId(null); setCartOpen(true); }} />}
           {renderCartDrawer()}
           {renderCompareTray()}
           {renderCompareModal()}

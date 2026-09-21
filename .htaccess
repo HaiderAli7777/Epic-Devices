@@ -1,3 +1,5 @@
+DirectoryIndex index.html
+
 # ── EPIC DEVICES · Apache configuration for Hostinger shared hosting ──
 
 # Force HTTPS. Hostinger issues a free certificate; this makes sure it is used.
@@ -24,14 +26,18 @@
   # The bundle is a separate file, so scripts are restricted to this origin.
   # Styles stay 'unsafe-inline' because the app injects its stylesheet at runtime,
   # and fonts come from Google. Nothing else may be loaded or connected to.
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' https://www.youtube.com https://player.vimeo.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self'; frame-src 'self' https://www.youtube.com https://player.vimeo.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 
   # The HTML must never be cached or a deploy will not reach people.
   <FilesMatch "\.(html)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
-  # Hashed or versioned assets can be cached hard.
-  <FilesMatch "\.(js|css|svg|woff2|png|jpg|webp)$">
+  # Unversioned artwork and fonts must revalidate periodically after edits.
+  <FilesMatch "\.(css|svg|woff2|png|jpg|webp)$">
+    Header set Cache-Control "public, max-age=86400, must-revalidate"
+  </FilesMatch>
+  # Content-hashed application bundles are safe to cache for a year.
+  <FilesMatch "^app-[A-Z0-9]+\.js$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>
@@ -47,7 +53,7 @@
 </IfModule>
 
 # ── Keep source and config off the web ──
-<FilesMatch "(^\.|package(-lock)?\.json$|build\.mjs$|\.jsx$|\.md$)">
+<FilesMatch "(^\.|package(-lock)?\.json$|\.mjs$|\.jsx$|\.map$|\.md$)">
   Require all denied
 </FilesMatch>
 <IfModule mod_rewrite.c>
