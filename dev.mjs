@@ -1,12 +1,12 @@
-/* Local static preview. Build once with npm run build before starting. */
+/* Local preview of the built site in dist/. Run npm run build first. */
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, extname, sep } from "node:path";
 
-const root = dirname(fileURLToPath(import.meta.url));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "dist");
 const port = Number(process.env.EPIC_PREVIEW_PORT || 4173);
-const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".woff2": "font/woff2", ".txt": "text/plain" };
+const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".woff2": "font/woff2", ".txt": "text/plain", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".xml": "application/xml" };
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", "http://localhost");

@@ -13,43 +13,46 @@ Static storefront for **epicdevicesltd.com** plus the business console, ready to
 - **Fonts hosted with the site.** Saira (display) and Plus Jakarta Sans (text) load from `assets/fonts`. Nothing is loaded from Google, which is faster in Pakistan and simplifies the security policy.
 - **Search engines and sharing.** Page title, description, canonical URL, Open Graph image, structured data for the store, `sitemap.xml` and an updated `robots.txt`.
 
-## Upload to GitHub, then deploy on Hostinger
+## Deploy on Hostinger (GitHub, Node.js web app)
 
-Your repository is already connected to hPanel's Git integration, so each deploy copies the repository into `public_html`.
+Hostinger builds the site on every push: it runs `npm install`, then `npm run build`, then publishes the **`dist`** folder. The build writes the complete website (pages, bundles, logo, slides, fonts, `.htaccess`, sitemap, icons) into `dist/`, so nothing else from the repository reaches visitors.
 
-**Option A: GitHub Desktop or the git command line (recommended, it removes old files)**
+Use these build and output settings in hPanel (your web app, **Settings**, **Build and output settings**):
 
-1. Unzip `epic-devices-v5.zip`. Inside is a folder whose top level contains `index.html`.
-2. Open your local copy of the repository. Delete everything in it **except the hidden `.git` folder**.
-3. Copy all files from the unzipped folder into the repository folder, including the hidden `.htaccess` and `.gitignore`.
-4. Commit with a message such as `EPIC DEVICES 5.0` and push to the `main` branch.
+| Setting | Value |
+| --- | --- |
+| Framework preset | React |
+| Branch | main |
+| Root directory | `./` |
+| Node version | 22.x |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Entry file | none, this is a static site |
 
-**Option B: the GitHub website**
+**Update the repository**
 
-1. In the repository on github.com, delete the old files that 5.0 no longer uses: `assets/app-*.js` and `assets/console-*.js` from 4.0, `assets/epic-hero.webp`, `assets/slide-*-v3-*.webp`, and the `inter` and `sora` files in `assets/fonts`.
-2. Choose **Add file, Upload files**, and drag in the **contents** of the unzipped folder, not the folder itself, so `index.html` stays at the repository root.
-3. On a Mac, press **Cmd + Shift + .** in Finder first so the hidden `.htaccess` file is visible and gets uploaded.
-4. Commit the changes to `main`.
+1. Unzip the package. Inside is a folder whose top level contains `package.json`.
+2. In your local copy of the repository, delete everything **except the hidden `.git` folder**, then copy in all files from the unzipped folder, including the hidden `.htaccess` and `.gitignore`. On a Mac, press **Cmd + Shift + .** in Finder to see hidden files.
+3. Commit and push to `main`. This also removes the old prebuilt `index.html`, `console.html` and `assets/app-*.js` files, which are no longer kept in the repository.
+4. Hostinger starts a new deployment by itself. If it does not, open the web app in hPanel and click **Redeploy**.
+5. Open https://epicdevicesltd.com and press **Ctrl + F5** once.
 
-**Deploy on Hostinger**
+Never commit `dist/` or `node_modules/`; `.gitignore` already excludes them and Hostinger creates both during the build.
 
-1. hPanel, **Websites, Manage, Advanced, Git**.
-2. Next to the connected repository, click **Deploy**. With auto deployment switched on, the push already did this.
-3. Open https://epicdevicesltd.com and press **Ctrl + F5** once to skip your browser's cache.
-
-Quick checks after deploying: the new logo and favicon appear, the slider moves and pauses when you hover over it, the WhatsApp button opens a chat with +92 305 7777817, and `https://epicdevicesltd.com/src/` shows "Forbidden".
+If a deployment ever fails again, open **View analysis** in hPanel, or run `npm ci && npm run build` on your computer: the build stops with a clear message when a file the pages need is missing from `dist/`.
 
 ## Editing the site
 
-The built site is `index.html`, `console.html` and `assets/`. After editing anything in `src/`, rebuild:
+You only commit source files; Hostinger rebuilds `dist/` on every push. To check a change on your computer first:
 
 ```bash
 npm ci          # first time only, needs Node.js 20 or newer
-npm run build   # rebuilds index.html, console.html and the bundles
+npm run build   # writes the finished site to dist/
 npm test        # 10 checks for prices, search, bag, compare and routes
+npm run preview # serves dist/ at http://127.0.0.1:4173
 ```
 
-Commit the rebuilt files together with your edits. `node_modules` is ignored by `.gitignore` and must not be uploaded.
+Then commit and push the source change. Node.js 20.19 or newer, or 22.13 or newer, is required; Hostinger's 22.x works.
 
 | To change | Edit |
 | --- | --- |
@@ -73,16 +76,14 @@ Slide images are transparent WebP files at 1200 x 900 and 700 x 525 pixels with 
 ## Files
 
 ```
-index.html, console.html     built pages (do not edit by hand)
-assets/app-*.js              storefront bundle, about 275 KB
-assets/console-*.js          console bundle, loads only on console.html
+src/                         source code: storefront, console, catalogue, page head
 assets/brand/                logo files, favicon, app icons, og-image.jpg
 assets/slides/               single-tone product cutouts for the slider
 assets/fonts/                Saira and Plus Jakarta Sans with their OFL licences
-src/                         source code (blocked from the web by .htaccess)
+.htaccess, robots.txt, sitemap.xml, site.webmanifest, favicon.ico
+build.mjs                    builds everything into dist/ and checks nothing is missing
+dist/                        created by the build, published by Hostinger (not committed)
 tests/, scripts/, reports/   checks, catalogue tools and the price audit
-.htaccess                    HTTPS, security headers, caching, source protection
-robots.txt, sitemap.xml, site.webmanifest, favicon.ico
 ```
 
 ## Completing the catalogue import

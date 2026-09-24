@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const bundle=readFileSync(new URL('../'+html.match(/src="\.\/(assets\/app-[A-Z0-9]+\.js)"/)[1],import.meta.url),'utf8');
+// Tests run against the built site in dist/, exactly what Hostinger publishes.
+const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+const bundle=readFileSync(new URL('../dist/'+html.match(/src="\.\/(assets\/app-[A-Z0-9]+\.js)"/)[1],import.meta.url),'utf8');
 const pause=()=>new Promise(r=>setTimeout(r,35));
 async function boot(hash='',saved={}) {
   const errors=[];
