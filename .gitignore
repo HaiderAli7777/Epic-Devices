@@ -6,3 +6,5 @@ node_modules/
 # built by `npm run build` (Hostinger builds it on every deploy)
 dist/
 build/
+reports/product-photos.csv
+reports/photo-fetch.csv

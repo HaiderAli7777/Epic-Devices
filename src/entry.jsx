@@ -1,5 +1,0 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import Retail from './retail.jsx';
-createRoot(document.getElementById('root')).render(<Retail />);
-requestAnimationFrame(() => document.getElementById('boot')?.remove());

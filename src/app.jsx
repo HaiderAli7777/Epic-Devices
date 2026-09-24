@@ -1,8 +1,11 @@
 import { legacyProducts, legacyCategories } from "./catalog/legacy.mjs";
+import { CATEGORIES as CATALOG_CATEGORIES } from "./catalog/logic.mjs";
+import BrandHero from "./brand-hero.jsx";
 import UPGRADE_CSS from "./upgrade.css";
 import EXPERIENCE_CSS from "./experience.css";
-import { StoreHero, DiscoveryStrip, ProductFinder, QuickView, ProductCompare } from "./experience.jsx";
-import { StoreHeader, CollectionGrid, CollectionSpotlights, RestockRequest, StoreFooter, StoreInfo } from "./storefront.jsx";
+import REVAMP_CSS from "./revamp.css";
+import { DiscoveryStrip, ProductFinder, QuickView, ProductCompare } from "./experience.jsx";
+import { StoreHeader, CategoryCircles, TrustBar, BudgetShelf, BrandWall, FinderBand, ProductRail, PromoBanner, HelpBand, BottomNav, StoreFooter, StoreInfo, BrandLogo, WhatsAppFab } from "./storefront.jsx";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   ShoppingCart, Search, Heart, User, Lock, Menu, X, Plus, Minus, Check, ChevronRight, ChevronLeft,
@@ -2475,6 +2478,22 @@ const iconOf = (key) => ICON_BY_KEY[key] || Package;
 /* Demo data off. Categories, the chart of accounts, payment terms and the
    laptop catalogue stay because they are real setup, not invented history.
    Every fabricated order, customer, employee, expense and document is gone. */
+/* talks to server.js; throws an Error carrying .status when the request fails */
+async function serverApi(path, { method = "GET", body, token } = {}) {
+  if (typeof fetch !== "function") throw Object.assign(new Error("No connection to the server."), { status: 0 });
+  const res = await fetch("./api/" + path, {
+    method, cache: "no-store",
+    headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: "Bearer " + token } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* not JSON: this host has no server */ }
+  if (!res.ok || !data) throw Object.assign(new Error((data && data.error) || "The server did not respond."), { status: res.status });
+  return data;
+}
+const money2 = (n) => "Rs " + Number(n || 0).toLocaleString("en-PK", { maximumFractionDigits: 2 });
+const isLocalPreview = () => typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+
 const DEMO = false;
 const ifDemo = (rows) => (DEMO ? rows : []);
 
@@ -2787,7 +2806,7 @@ const INITIAL_CONFIG = {
   /* We do not ship: customers collect, or trade orders go out on their own
      transport. Everything to do with couriers, zones and delivery methods is
      behind this one switch, so it can come back without being rebuilt. */
-  deliveries: false,
+  deliveries: true,
   /* We do not track individual units. No lots are minted on receipt and no
      serials are allocated on sale. Behind one switch, like deliveries. */
   serialTracking: false,
@@ -2830,24 +2849,24 @@ const INITIAL_CONFIG = {
   partners: [
     {
       id: "tcs", name: "TCS Overland", code: "TCS", active: true,
-      contactName: "Bilal Ahmed", phone: "021 111 123 456", email: "corporate@tcs.com.pk",
-      accountNo: "TCS-KHI-40219", settlementDays: 7, codFeePct: 1.5, pickupCost: 180, returnLegPct: 85,
+      contactName: "", phone: "", email: "",
+      accountNo: "", settlementDays: 7, codFeePct: 1.5, pickupCost: 180, returnLegPct: 85,
       zonesServed: ["z1", "z2", "z3", "z4"],
       zones: { z1: { base: 135, perKg: 34 }, z2: { base: 176, perKg: 49 }, z3: { base: 254, perKg: 73 }, z4: { base: 382, perKg: 118 } },
       note: "Widest reach, slowest remittance.",
     },
     {
       id: "leopards", name: "Leopards Express", code: "LEO", active: true,
-      contactName: "Sana Iqbal", phone: "042 111 300 300", email: "business@leopardscourier.com",
-      accountNo: "LEO-LHR-88134", settlementDays: 4, codFeePct: 1.8, pickupCost: 200, returnLegPct: 80,
+      contactName: "", phone: "", email: "",
+      accountNo: "", settlementDays: 4, codFeePct: 1.8, pickupCost: 200, returnLegPct: 80,
       zonesServed: ["z1", "z2", "z3"],
       zones: { z1: { base: 148, perKg: 38 }, z2: { base: 192, perKg: 54 }, z3: { base: 279, perKg: 80 } },
       note: "Faster settlement, does not cover remote zones.",
     },
     {
-      id: "rider", name: "Rider Direct", code: "RDR", active: true,
-      contactName: "Hamza Sheikh", phone: "0300 4455661", email: "ops@riderdirect.pk",
-      accountNo: "RDR-ISB-2207", settlementDays: 2, codFeePct: 2.2, pickupCost: 260, returnLegPct: 100,
+      id: "rider", name: "Local rider", code: "RDR", active: true,
+      contactName: "", phone: "", email: "",
+      accountNo: "", settlementDays: 2, codFeePct: 2.2, pickupCost: 260, returnLegPct: 100,
       zonesServed: ["z1"],
       zones: { z1: { base: 290, perKg: 60 } },
       note: "Same-day inside the big five only. Premium rate, next-day cash.",
@@ -3538,8 +3557,6 @@ const SEED_B2B = (function () {
 export default function App({ initialView = "store" } = {}) {
   /* ── navigation ── */
   const [view, setView] = useState(initialView);            // store | console
-  // console.html has no storefront of its own: leaving the console opens the live store.
-  useEffect(() => { if (initialView === "console" && view === "store") window.location.assign("./"); }, [initialView, view]);
   const [storeView, setStoreView] = useState("home");   // home | shop | checkout | confirm | wishlist | track
   const [tab, setTab] = useState("dashboard");
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -3727,7 +3744,7 @@ export default function App({ initialView = "store" } = {}) {
   const [activeId, setActiveId] = useState(null);
   const [trackId, setTrackId] = useState("");
   const [tracked, setTracked] = useState(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "Karachi", zoneId: "z1", methodId: "standard", paymentMethod: "cod" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "Lahore", zoneId: "z1", methodId: "standard", paymentMethod: "cod" });
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [anncIdx, setAnncIdx] = useState(0);
@@ -3841,7 +3858,7 @@ export default function App({ initialView = "store" } = {}) {
     const current = cart.find(l => l.id === id)?.qty || 0;
     if (current >= p.stock) { pushToast("All available units are already in your bag", Info); return; }
     setCart(c => { const ex = c.find(l => l.id === id); const next = Math.min(p.stock, (ex?.qty || 0) + requested); return ex ? c.map(l => l.id === id ? { ...l, qty: next } : l) : [...c, { id, qty: next }]; });
-    pushToast(p.name + " added to cart", ShoppingCart);
+    pushToast(p.name + " added to your bag", ShoppingCart);
   };
   const setQty = (id, qty) => setCart(c => c.map(l => l.id === id ? { ...l, qty: Math.min(Math.max(1, Math.floor(Number(qty) || 1)), Math.max(1, byId[id]?.stock || 1)) } : l));
   const removeLine = (id) => setCart((c) => c.filter((l) => l.id !== id));
@@ -3873,16 +3890,122 @@ export default function App({ initialView = "store" } = {}) {
       live.forEach((id) => { const ex = next.find((l) => l.id === id); if (ex) next = next.map((l) => (l.id === id ? { ...l, qty: Math.min(byId[id].stock, l.qty + 1) } : l)); else next = [...next, { id, qty: 1 }]; });
       return next;
     });
-    pushToast(live.length + " item" + (live.length > 1 ? "s" : "") + " moved to cart", ShoppingCart);
+    pushToast(live.length + " item" + (live.length > 1 ? "s" : "") + " moved to your bag", ShoppingCart);
   };
 
+  /* ── server sync ──
+     server.js keeps the catalogue, settings and orders. Everyone reads the catalogue from it,
+     customers send their orders to it, and the console, once signed in, loads every order and
+     saves its changes back. On a host without the server the app keeps its built-in data and
+     customers are offered WhatsApp to send their order. */
+  const [server, setServer] = useState({ status: "checking", admin: false });
+  const [adminToken, setAdminToken] = useState(() => { try { return sessionStorage.getItem("epic:token") || ""; } catch { return ""; } });
+  const [placing, setPlacing] = useState(false);
+  const [stateLoaded, setStateLoaded] = useState(false);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const syncedState = useRef({});
+  const syncedOrders = useRef(new Map());
+  useEffect(() => {
+    let alive = true;
+    serverApi("health")
+      .then((h) => { if (alive) setServer({ status: "online", admin: !!h.admin }); return serverApi("state"); })
+      .then((st) => {
+        if (!alive || !st) return;
+        if (Array.isArray(st.products) && st.products.length) setProducts(st.products);
+        if (Array.isArray(st.categories) && st.categories.length) setCategories(st.categories);
+        if (Array.isArray(st.promos)) setPromos(st.promos);
+        if (st.config && typeof st.config === "object") setConfig((c) => ({ ...c, ...st.config }));
+        setStateLoaded(true);
+        /* official manufacturer photos the server has fetched; they fill in only where a
+           product has no photo of its own (console upload or assets/products file) */
+        serverApi("photos").then(({ photos }) => {
+          if (!alive || !photos || !Object.keys(photos).length) return;
+          setProducts((list) => list.map((p) => (!String(p.image || "").trim() && photos[p.id] ? { ...p, image: photos[p.id] } : p)));
+        }).catch(() => {});
+      })
+      .catch(() => { if (alive) setServer({ status: "offline", admin: false }); });
+    return () => { alive = false; };
+  }, []);
+  // remember what the server already holds, so only real edits are sent back
+  useEffect(() => {
+    if (stateLoaded) syncedState.current = { products: JSON.stringify(products), categories: JSON.stringify(categories), promos: JSON.stringify(promos), config: JSON.stringify(config) };
+  }, [stateLoaded]);
+  // a saved session signs the console straight back in and loads every order
+  useEffect(() => {
+    if (server.status !== "online" || !adminToken) return;
+    let alive = true;
+    serverApi("orders", { token: adminToken })
+      .then(({ orders: list }) => {
+        if (!alive) return;
+        syncedOrders.current = new Map(list.map((o) => [o.id, JSON.stringify(o)]));
+        setOrders(list); setOrdersLoaded(true); setAuthed(true);
+      })
+      .catch((e) => { if (alive && e.status === 401) { setAdminToken(""); try { sessionStorage.removeItem("epic:token"); } catch { /* storage off */ } } });
+    return () => { alive = false; };
+  }, [server.status, adminToken]);
+  // console edits to the catalogue and settings are saved a moment after they happen
+  useEffect(() => {
+    if (!authed || !adminToken || server.status !== "online" || !stateLoaded) return;
+    const current = { products, categories, promos, config };
+    const changed = {};
+    for (const k of Object.keys(current)) { const text = JSON.stringify(current[k]); if (text !== syncedState.current[k]) changed[k] = { value: current[k], text }; }
+    if (!Object.keys(changed).length) return;
+    const t = setTimeout(() => {
+      const body = {};
+      for (const k of Object.keys(changed)) body[k] = changed[k].value;
+      serverApi("state", { method: "PUT", body, token: adminToken })
+        .then(() => { for (const k of Object.keys(changed)) syncedState.current[k] = changed[k].text; })
+        .catch((e) => pushToast(e.status === 401 ? "Your session ended. Sign in again to keep saving." : "Couldn't save to the server. Check your connection.", X, true));
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [products, categories, promos, config, authed, adminToken, server.status, stateLoaded]);
+  // order changes made in the console go back to the server
+  useEffect(() => {
+    if (!authed || !adminToken || server.status !== "online" || !ordersLoaded) return;
+    const changed = orders.filter((o) => syncedOrders.current.get(o.id) !== JSON.stringify(o));
+    if (!changed.length) return;
+    const t = setTimeout(() => {
+      serverApi("orders", { method: "PUT", body: { orders: changed }, token: adminToken })
+        .then(() => changed.forEach((o) => syncedOrders.current.set(o.id, JSON.stringify(o))))
+        .catch(() => pushToast("Couldn't save order changes to the server.", X, true));
+    }, 800);
+    return () => clearTimeout(t);
+  }, [orders, authed, adminToken, server.status, ordersLoaded]);
+  // new website orders appear in an open console within a minute
+  useEffect(() => {
+    if (!authed || !adminToken || server.status !== "online" || !ordersLoaded) return;
+    const timer = setInterval(() => {
+      serverApi("orders", { token: adminToken }).then(({ orders: list }) => {
+        setOrders((current) => {
+          const have = new Set(current.map((o) => o.id));
+          const fresh = list.filter((o) => !have.has(o.id));
+          if (!fresh.length) return current;
+          fresh.forEach((o) => syncedOrders.current.set(o.id, JSON.stringify(o)));
+          return [...fresh, ...current];
+        });
+      }).catch(() => { /* try again next minute */ });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [authed, adminToken, server.status, ordersLoaded]);
+
   /* ── auth ── */
-  const doLogin = () => {
+  const doLogin = async () => {
+    if (server.status === "checking") { setLoginErr("Connecting to the server. Try again in a moment."); return; }
+    if (server.status === "online") {
+      try {
+        const r = await serverApi("login", { method: "POST", body: { user: login.user, password: login.pass } });
+        try { sessionStorage.setItem("epic:token", r.token); } catch { /* storage off: this tab only */ }
+        setAdminToken(r.token);
+        setLoginErr(""); setLogin({ user: "", pass: "" }); pushToast("Signed in to the console", ShieldCheck);
+      } catch (e) { setLoginErr(e.message || "That username and password don't match. Check your credentials and try again."); }
+      return;
+    }
+    /* a static preview without the server: the demo sign-in still opens the console */
     if (login.user.trim().toLowerCase() === "admin" && login.pass === "epic123") {
-      setAuthed(true); setLoginErr(""); setLogin({ user: "", pass: "" }); pushToast("Signed in to the console", ShieldCheck);
+      setAuthed(true); setLoginErr(""); setLogin({ user: "", pass: "" }); pushToast("Signed in to a preview. Nothing is saved on a server.", ShieldCheck);
     } else setLoginErr("That username and password don't match. Check your credentials and try again.");
   };
-  const logout = () => { setAuthed(false); setView("store"); setStoreView("shop"); pushToast("Signed out", LogOut); };
+  const logout = () => { setAuthed(false); setAdminToken(""); setOrdersLoaded(false); try { sessionStorage.removeItem("epic:token"); } catch { /* storage off */ } setView("store"); setStoreView("shop"); pushToast("Signed out", LogOut); };
   const openConsole = () => { setView("console"); setMobileMenu(false); window.scrollTo(0, 0); };
 
   /* ── storefront filtering ── */
@@ -4127,10 +4250,15 @@ export default function App({ initialView = "store" } = {}) {
 
   const featured = useMemo(() => {
     const live = products.filter((p) => p.active);
+    /* ties (a new shop has no sales or ratings yet) are broken by taking one product from
+       each category in turn, so the shelf shows the range instead of eight mice */
+    const seen = {}, spread = new Map();
+    live.forEach((p) => { seen[p.category] = (seen[p.category] || 0) + 1; spread.set(p.id, seen[p.category]); });
+    const tie = (a, b) => spread.get(a.id) - spread.get(b.id);
     return {
-      best: [...live].sort((a, b) => displaySold(b) - displaySold(a)).slice(0, 8),
-      new: [...live].filter((p) => p.isNew).concat([...live].filter((p) => !p.isNew)).slice(0, 8),
-      top: [...live].sort((a, b) => b.rating - a.rating).slice(0, 8),
+      best: [...live].sort((a, b) => displaySold(b) - displaySold(a) || (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || tie(a, b)).slice(0, 8),
+      new: [...live].filter((p) => p.isNew).slice(0, 8),
+      top: live.some((p) => p.reviews > 0) ? [...live].sort((a, b) => b.rating - a.rating || tie(a, b)).slice(0, 8) : [],
       deals: [...live].filter((p) => pInfo(p).offPct > 0).sort((a, b) => pInfo(b).offPct - pInfo(a).offPct).slice(0, 8),
     };
   }, [products, salesByProduct, autoPromos]);
@@ -4484,39 +4612,61 @@ export default function App({ initialView = "store" } = {}) {
     setForm((prev) => ({ ...prev, city: name, zoneId, methodId }));
   };
   const goCheckout = () => {
-    if (!cart.length) { pushToast("Your cart is empty", X, true); return; }
+    if (!cart.length) { pushToast("Your bag is empty", X, true); return; }
     setCartOpen(false); setStoreView("checkout"); window.scrollTo(0, 0);
   };
-  const placeOrder = () => {
-    if (!cart.length) { pushToast("Your cart is empty", X, true); return; }
+  const placeOrder = async () => {
+    if (placing) return;
+    if (!cart.length) { pushToast("Your bag is empty", X, true); return; }
     const labels = { name: "name", email: "email", phone: "phone number", address: "delivery address", city: "city" };
     for (const f of ["name", "email", "phone", "address", "city"]) if (!form[f].trim()) { pushToast("Add your " + labels[f] + " to continue", X, true); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { pushToast("Enter a valid email address", X, true); return; }
     if (cart.some(l => !byId[l.id] || isSoldOut(byId[l.id]) || l.qty > byId[l.id].stock)) { pushToast("Please update your bag to match available stock", X, true); return; }
     if (normalisePhone(form.phone).length < 10) { pushToast("That phone number looks too short", X, true); return; }
-    const order = {
-      id: "TX-" + seq, createdAt: Date.now(),
+    const draft = {
       customer: { name: form.name, email: form.email, city: form.city, address: form.address, phone: form.phone },
       zoneId: form.zoneId, methodId: form.methodId, paymentMethod: form.paymentMethod,
-      lines: cart.map((l) => ({ id: l.id, qty: l.qty, price: pInfo(byId[l.id]).final, cost: byId[l.id].cost })),
+      lines: cart.map((l) => ({ id: l.id, qty: l.qty, price: pInfo(byId[l.id]).final })),
       subtotal: cartBase.subtotal, weight: cartBase.weight, shipping: cartBase.shipping, shipCost: cartBase.shipCost, tax: cartBase.tax,
       total: cartFinalTotal, discount: codeDiscount, promoCode: appliedPromo ? appliedPromo.code : null,
-      etaMin: cartBase.etaMin, etaMax: cartBase.etaMax, status: "Processing", paid: false, note: "Browser preview — no payment processed",
-      codPaid: 0, freightPaid: 0,
-      /* stamp the exact units that left the shelf onto the order */
-      serials: config.serialTracking ? cart.flatMap((l) => consumeSerials(l.id, l.qty, "sold", "TX-" + seq)) : [],
+      etaMin: cartBase.etaMin, etaMax: cartBase.etaMax,
     };
-    setOrders((o) => [order, ...o]); setSeq((s) => s + 1);
-    setProducts((ps) => ps.map((p) => { const l = cart.find((x) => x.id === p.id); return l ? { ...p, stock: Math.max(0, p.stock - l.qty) } : p; }));
-    setLastOrder(order); setCart([]); clearCode(); setStoreView("confirm"); window.scrollTo(0, 0);
-    logAct("order", "Order " + order.id + " placed by " + order.customer.name);
-    pushToast("Order " + order.id + " placed", PackageCheck);
+    const finish = (order) => {
+      setOrders((o) => [order, ...o]);
+      setProducts((ps) => ps.map((p) => { const l = cart.find((x) => x.id === p.id); return l ? { ...p, stock: Math.max(0, p.stock - l.qty) } : p; }));
+      setLastOrder(order); setCart([]); clearCode(); setStoreView("confirm"); window.scrollTo(0, 0);
+      logAct("order", "Order " + order.id + " placed by " + order.customer.name);
+      pushToast("Order " + order.id + " placed", PackageCheck);
+    };
+    if (server.status !== "online") {
+      if (isLocalPreview()) {   // local preview without the server keeps the original in-browser order
+        finish({ ...draft, id: "TX-" + seq, createdAt: Date.now(), lines: draft.lines.map((l) => ({ ...l, cost: byId[l.id].cost })), status: "Processing", paid: false,
+          note: "Preview order, saved in this browser only", codPaid: 0, freightPaid: 0, serials: [] });
+        setSeq((q) => q + 1);
+        return;
+      }
+      /* the live site cannot reach the server: send the order on WhatsApp so it still arrives */
+      const text = ["Hello EPIC DEVICES, I would like to place this order:", ""]
+        .concat(cart.map((l, i) => (i + 1) + ". " + byId[l.id].name + " x " + l.qty + " = " + money2(pInfo(byId[l.id]).final * l.qty)))
+        .concat(["", "Total: " + money2(cartFinalTotal), "Name: " + form.name, "Phone: " + form.phone, "Email: " + form.email, "Address: " + form.address + ", " + form.city, "Payment: " + form.paymentMethod]).join("\n");
+      window.open("https://wa.me/" + String(config.storePhone || "").replace(/\D/g, "") + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+      pushToast("Online ordering is unavailable right now, so we opened WhatsApp with your order.", X, true);
+      return;
+    }
+    setPlacing(true);
+    try { const { order } = await serverApi("orders", { method: "POST", body: draft }); finish(order); }
+    catch (e) { pushToast(e.message || "We couldn't place your order. Please try again.", X, true); }
+    finally { setPlacing(false); }
   };
-  const doTrack = () => {
+  const doTrack = async () => {
     const id = trackId.trim().toUpperCase();
+    if (!id) return;
     const found = orders.find((o) => o.id.toUpperCase() === id);
-    if (!found) { setTracked(null); pushToast("No order found with that number", X, true); return; }
-    setTracked(found);
+    if (found) { setTracked(found); return; }
+    if (server.status === "online") {
+      try { const { order } = await serverApi("track?id=" + encodeURIComponent(id)); setTracked(order); return; } catch { /* not found */ }
+    }
+    setTracked(null); pushToast("No order found with that number", X, true);
   };
 
   /* ── order ops ── */
@@ -4636,6 +4786,23 @@ export default function App({ initialView = "store" } = {}) {
   };
 
   const productImgInput = useRef(null);
+  const [photoLink, setPhotoLink] = useState("");
+  const [importingPhoto, setImportingPhoto] = useState(false);
+  /* a link copied from Google Images or a supplier site: the server downloads it and
+     keeps its own copy; a data: link (what Google sometimes copies) is stored as it is */
+  const importPhotoLink = async () => {
+    const link = photoLink.trim();
+    if (!link) return;
+    const add = (url) => setProductDraft((d) => (!d ? d : !d.image ? { ...d, image: url } : { ...d, images: [...(d.images || []), url] }));
+    if (/^data:image\//.test(link)) { add(link); setPhotoLink(""); pushToast("Photo added", Check); return; }
+    if (server.status !== "online" || !adminToken) { pushToast("Sign in to the console on the live site to import photos", X, true); return; }
+    setImportingPhoto(true);
+    try {
+      const { url } = await serverApi("media/import", { method: "POST", body: { url: link }, token: adminToken });
+      add(url); setPhotoLink(""); pushToast("Photo imported and saved on the server", Check);
+    } catch (err) { pushToast(err.message || "Could not import that photo", X, true); }
+    setImportingPhoto(false);
+  };
   const onProductImageFiles = async (e) => {
     const files = e.target.files;
     const urls = await readImages(files, 8);
@@ -6953,7 +7120,13 @@ export default function App({ initialView = "store" } = {}) {
           <span className="glow" /><span className="pad" />
           {(() => {
             const frames = galleryFrames(p);
-            if (!frames.length) return <I size={listMode ? 44 : 58} strokeWidth={1.3} className="icn" />;
+            if (!frames.length) return (
+              <span className="rv-ph">
+                <span />
+                <I size={listMode ? 40 : 54} strokeWidth={1.25} className="icn" />
+                <span className="rv-ph-specs">{(p.specs || []).filter(([k]) => !/model|colour/i.test(k)).slice(0, 2).map(([k, v]) => <i key={k}>{v}</i>)}</span>
+              </span>
+            );
             /* every angle is stacked and cross-faded by CSS on hover, so cycling
                costs no state and no re-render however many cards are on screen */
             return (
@@ -6971,9 +7144,8 @@ export default function App({ initialView = "store" } = {}) {
             );
           })()}
           <div className="card-tags">
-            {inf.offPct > 0 && <span className="pill violet">Sale</span>}
+            {inf.offPct > 0 && <span className="pill violet">−{inf.offPct}%</span>}
             {p.isNew && <span className="pill blue">New</span>}
-            {p.featured && !p.isNew && inf.offPct === 0 && <span className="pill line">Pick</span>}
           </div>
           <div className="card-acts" onClick={(e) => e.stopPropagation()}>
             <button className={"mini " + (wished ? "on" : "")} onClick={() => toggleWish(p.id)} aria-pressed={wished} aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}>
@@ -6988,12 +7160,12 @@ export default function App({ initialView = "store" } = {}) {
         </div>
         <div className="card-body">
           <div className="lb-main">
+            <div className="rv-card-brand">{p.brand}</div>
             <h3><button onClick={() => openProduct(p.id)}>{p.name}</button></h3>
-            <div className="card-sub">{subtitleOf(p)}</div>
-            <div className="card-rate">
+            {p.reviews > 0 && <div className="card-rate">
               {renderStars(p.rating, 12)}
               <span className="rc">({p.reviews.toLocaleString("en-US")})</span>
-            </div>
+            </div>}
           </div>
           <div className="lb-mid">
             {(low || out) && (
@@ -7008,8 +7180,8 @@ export default function App({ initialView = "store" } = {}) {
               <div className="price">{money(inf.final)}{inf.was && <s>{money(inf.was)}</s>}</div>
               {inf.promo && <div className="price-off">{inf.promo.name}</div>}
             </div>
-            <button className="add-btn" disabled={out} onClick={() => addToCart(p.id)} aria-label={"Add " + p.name + " to cart"}>
-              {out ? <X size={16} /> : <ShoppingCart size={17} />}
+            <button className="add-btn" disabled={out} onClick={() => addToCart(p.id)} aria-label={"Add " + p.name + " to bag"}>
+              {out ? <X size={16} /> : <ShoppingBag size={16} />}<span>{out ? "Sold out" : "Add to bag"}</span>
             </button>
           </div>
         </div>
@@ -7066,7 +7238,8 @@ export default function App({ initialView = "store" } = {}) {
   );
 
   const renderNav = () => <StoreHeader config={config} products={products} categories={parents}
-    active={storeView} special={special} cartCount={cartCount} wishCount={wishlist.length}
+    active={storeView} special={special} category={category}
+    city={form.city} cities={PK_CITIES.map((c) => c.name)} onCity={selectCity} cartCount={cartCount} wishCount={wishlist.length}
     onHome={() => { setStoreView("home"); setMobileMenu(false); window.scrollTo(0, 0); }}
     onShop={goShop} onSpecial={navSpecial} onProduct={openProduct}
     onSearch={(value) => { goShop("All", true); setQuery(value); }}
@@ -7089,7 +7262,7 @@ export default function App({ initialView = "store" } = {}) {
       <button className="ml" onClick={() => { setStoreView("home"); setMobileMenu(false); window.scrollTo(0, 0); }}>Home <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => goShop("All")}>Shop all <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => { setMobileMenu(false); setFinderOpen(true); }}>Find my upgrade <Sparkles size={17} /></button>
-      {children.map((c) => <button className="ml" key={c.id} onClick={() => goShop(c.id)}>{c.label} <ChevronRight size={17} /></button>)}
+      {(children.length ? children : parents).map((c) => <button className="ml" key={c.id} onClick={() => goShop(c.id)}>{c.label} <ChevronRight size={17} /></button>)}
       <button className="ml" onClick={() => navSpecial("new")}>New arrivals <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => navSpecial("deals")}>Deals <ChevronRight size={17} /></button>
       <button className="ml" onClick={() => { setStoreView("wishlist"); setMobileMenu(false); window.scrollTo(0, 0); }}>Wishlist ({wishlist.length}) <ChevronRight size={17} /></button>
@@ -7100,10 +7273,9 @@ export default function App({ initialView = "store" } = {}) {
   );
 
   /* ══════════════════════════ HERO ══════════════════════════ */
-  const renderHero = () => <StoreHero onShop={goShop} config={config} onCompare={() => setCompareOpen(true)} onFinder={() => setFinderOpen(true)} />;
+  const renderHero = () => <BrandHero onShop={(cat) => goShop(cat)} onFinder={() => setFinderOpen(true)} />;
 
   /* ══════════════════════════ CATEGORY ROW ══════════════════════════ */
-  const renderCategoryRow = () => <CollectionGrid categories={categories} onShop={goShop} count={catCount} />;
 
   /* ══════════════════════════ FEATURED ══════════════════════════ */
   /* ══════════════════════════ SHOWREEL ══════════════════════════
@@ -7340,31 +7512,84 @@ export default function App({ initialView = "store" } = {}) {
     );
   };
 
+  /* ══════════════════════════ HOME ══════════════════════════
+     A marketplace front page: shortcuts, then shelves of products separated by
+     promotional tiles. Every number on a tile is worked out from the live catalogue,
+     so a tile never promises a price or a range the shop does not have. */
+  const renderHome = () => {
+    const live = products.filter((p) => p.active);
+    const price = (p) => pInfo(p).final;
+    const spec = (p, key) => ((p.specs || []).find(([k]) => k.toLowerCase() === key) || [])[1] || "";
+    const from = (list) => (list.length ? "from " + money(Math.min(...list.map(price))) : null);
+    const inCat = (id) => live.filter((p) => p.category === id);
+    const shelf = (id) => [...inCat(id)].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || displaySold(b) - displaySold(a) || price(a) - price(b));
+    const gaming = inCat("mouse").filter((p) => /gaming/i.test(spec(p, "type")) || /^Logitech G\d/.test(p.name));
+    const ddr5 = inCat("ram").filter((p) => /DDR5/i.test(spec(p, "memory type")));
+    const portable = inCat("drives").filter((p) => /portable/i.test(spec(p, "type")));
+    const internal = inCat("drives").filter((p) => !/portable|external/i.test(spec(p, "type")));
+    const tb = (p) => parseFloat((spec(p, "capacity").match(/([\d.]+)\s*TB/i) || [])[1]) || 0;
+    const maxTb = Math.max(0, ...inCat("drives").map(tb));
+    const brandsOf = (list) => [...new Set(list.map((p) => p.brand))].slice(0, 4).join(" · ");
+    const rail = (id, eyebrow, title) => {
+      const list = shelf(id);
+      return list.length >= 4 ? <ProductRail eyebrow={eyebrow} title={title} items={list.slice(0, 12)} renderCard={renderCard} onViewAll={() => goShop(id)} /> : null;
+    };
+    const recent = recentList();
+    return (
+      <>
+        {renderHero()}
+        <CategoryCircles categories={categories} count={catCount} onShop={goShop} onSpecial={navSpecial} />
+        <TrustBar config={config} />
+        <ProductRail eyebrow="Picked for you" title="Top picks this week" items={featured.best} renderCard={renderCard} onViewAll={() => goShop("All")} />
+        {(gaming.length > 0 || inCat("audio").length > 0) && <div className="ed-wrap rv-promo-row two reveal">
+          {gaming.length > 0 && <PromoBanner tone="cobalt" kicker="Gaming mice" title="Every move matters." value={from(gaming)} note={gaming.length + " models · " + brandsOf(gaming)} art="./assets/slides/slide-mouse-700.webp" onClick={() => goShop("mouse")} />}
+          {inCat("audio").length > 0 && <PromoBanner tone="graphite" kicker="Headsets & microphones" title="Be heard. Get immersed." value={from(inCat("audio"))} note={brandsOf(inCat("audio"))} art="./assets/slides/slide-headphones-700.webp" onClick={() => goShop("audio")} />}
+        </div>}
+        {rail("mouse", "Mice", "Mice for work and play")}
+        {inCat("ram").length > 0 && <div className="ed-wrap rv-promo-row one reveal">
+          <PromoBanner wide tone="steel" kicker={ddr5.length ? "DDR4 and DDR5" : "Memory"} title="Room to do more." value={from(inCat("ram"))} note={brandsOf(inCat("ram"))} art="ram" cta="Upgrade your memory" onClick={() => goShop("ram")} />
+        </div>}
+        {rail("audio", "Audio", "Headsets & microphones")}
+        <div className="ed-wrap rv-promo-row three reveal">
+          {inCat("keyboard").length > 0 && <PromoBanner tone="ice" kicker="Keyboards" title="Find your flow." value={from(inCat("keyboard"))} note={brandsOf(inCat("keyboard"))} art="./assets/slides/slide-keyboard-700.webp" onClick={() => goShop("keyboard")} />}
+          {portable.length > 0 && <PromoBanner tone="cobalt" kicker="Portable drives" title="Take it with you." value={from(portable)} note={brandsOf(portable)} art="drive" onClick={() => goShop("drives")} />}
+          {internal.length > 0 && <PromoBanner tone="graphite" kicker="Desktop & enterprise" title={maxTb ? "Up to " + maxTb + "TB." : "Big storage."} value={from(internal)} note={brandsOf(internal)} art="drive" onClick={() => goShop("drives")} />}
+        </div>
+        {rail("ram", "Memory", "RAM upgrades")}
+        <FinderBand onFinder={() => setFinderOpen(true)} />
+        {rail("drives", "Storage", "Hard drives")}
+        {rail("keyboard", "Keyboards", "Keyboards & keypads")}
+        <BudgetShelf products={products} priceOf={price} money={money}
+          onBudget={(lo, hi) => { goShop("All"); setPriceLo(lo); setPriceHi(hi); }} />
+        <BrandWall products={products} onBrand={(b) => { goShop("All"); setBrands([b]); }} />
+        {renderPromoBanners()}
+        {recent.length >= 2 && <ProductRail eyebrow="Pick up where you left off" title="Recently viewed" items={recent} renderCard={renderCard} />}
+        <HelpBand config={config} onTrack={() => { setStoreView("track"); window.scrollTo(0, 0); }} />
+      </>
+    );
+  };
+
   const renderFeatured = () => {
-    if (!products.some(p => p.active)) return <CollectionSpotlights categories={categories} onShop={goShop} />;
-    const tabs = [["best", "Best sellers"], ["new", "Just landed"], ["top", "Top rated"], ["deals", "On sale"]];
+    if (!products.some(p => p.active)) return null;
+    const tabs = [["best", "Best sellers"], ["new", "Just landed"], ["top", "Top rated"], ["deals", "On sale"]].filter(([k]) => k === "best" || (featured[k] || []).length);
     const list = featured[featTab] || [];
     return (
-      <section className="section tight reveal"><div className="wrap">
-        <div className="sec-head">
-          <div className="sec-title">
-            <span className="dashes"><i /><i /></span>
-            <h2>Your next great find.</h2>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <div className="ftabs">{tabs.map(([k, l]) => <button key={k} className={featTab === k ? "on" : ""} onClick={() => setFeatTab(k)}>{l}</button>)}</div>
-            <button className="link" onClick={() => goShop("All")}>View All Products <ArrowRight size={15} /></button>
+      <section className="rv-section rv-featured reveal"><div className="wrap">
+        <div className="rv-head">
+          <div><span className="rv-eyebrow">Picked for you</span><h2>Your next great find.</h2></div>
+          <div className="rv-head-tools">
+            {tabs.length > 1 && <div className="ftabs" role="group" aria-label="Filter featured products">{tabs.map(([k, l]) => <button key={k} className={featTab === k ? "on" : ""} aria-pressed={featTab === k} onClick={() => setFeatTab(k)}>{l}</button>)}</div>}
+            <button className="rv-textlink" onClick={() => goShop("All")}>View all <ArrowRight size={15} /></button>
           </div>
         </div>
         {list.length === 0
           ? <div className="empty"><Sparkles size={34} color="var(--ink3)" strokeWidth={1.3} /><h4>{featTab === "deals" ? "More good things are on the way" : "Watch this space"}</h4><p>{featTab === "deals" ? "Explore the full collection while we prepare our next offers." : "Our next arrivals will appear here. Contact our team if you are looking for something specific."}</p><button className="btn btn-pri" onClick={() => goShop("All")}>Explore all products <ArrowRight size={15} /></button></div>
-          : <div className="grid five">{list.slice(0, 5).map(renderCard)}</div>}
+          : <div className="grid rv-grid4">{list.slice(0, 8).map(renderCard)}</div>}
       </div></section>
     );
   };
 
   /* ══════════════════════════ BANDS ══════════════════════════ */
-  const renderNewsBand = () => <RestockRequest config={config} onNotify={msg => pushToast(msg, Info)} />;
 
   const renderDealBand = () => {
     const best = Math.max(0, ...products.filter(p => p.active).map(p => pInfo(p).offPct));
@@ -7391,7 +7616,7 @@ export default function App({ initialView = "store" } = {}) {
           <div className={"shophero" + (media ? " withmedia" : "")}>
             <div>
               <h1>{cat
-                ? <><span className="gtext">{cat.label}</span></>
+                ? <><span className="gtext">{(CATALOG_CATEGORIES.find((x) => x.id === cat.id) || {}).plural || cat.label}</span></>
                 : <>{special === "deals" ? "Discover a great deal." : special === "new" ? "Meet the newest arrivals." : "Find your next upgrade."}</>}</h1>
               <p>{cat && cat.blurb
                 ? cat.blurb
@@ -7418,7 +7643,7 @@ export default function App({ initialView = "store" } = {}) {
         <button className={"ptab " + (category === "All" ? "on" : "")} onClick={() => { setCategory("All"); setPage(1); }}>
           <span className="ic"><LayoutGrid size={16} /></span> All Products
         </button>
-        {children.map((c) => {
+        {(children.length ? children : parents).map((c) => {
           const I = iconOf(c.iconKey);
           return (
             <button className={"ptab " + (category === c.id ? "on" : "")} key={c.id} onClick={() => { setCategory(c.id); setPage(1); }}>
@@ -7452,16 +7677,23 @@ export default function App({ initialView = "store" } = {}) {
           {facetHead("cat", "Category")}
           {openFacets.cat && (
             <div className="facet-b">
-              <button className={"fcat all " + (cats.length === 0 ? "on" : "")} onClick={() => { setCats([]); setCategory("All"); setPage(1); }}>
+              <button className={"fcat all " + (cats.length === 0 && category === "All" ? "on" : "")} onClick={() => { setCats([]); setCategory("All"); setPage(1); }}>
                 All products<span className="ct">{products.filter((p) => p.active).length}</span>
               </button>
               {parents.map((g) => {
                 const kids = childrenOf(g.id).map((c) => c.id);
-                const groupOn = kids.length > 0 && kids.every((k) => cats.includes(k));
+                /* a category with no sub-categories is picked on its own; the one opened
+                   from the menu counts as picked until the sidebar takes over */
+                const groupOn = kids.length > 0 ? kids.every((k) => cats.includes(k)) : cats.includes(g.id) || (cats.length === 0 && category === g.id);
+                const pickLeaf = () => {
+                  const base = cats.length === 0 && category !== "All" ? [category] : cats;
+                  setCats(groupOn ? base.filter((x) => x !== g.id) : [...new Set([...base, g.id])]);
+                  setCategory("All");
+                };
                 return (
                   <React.Fragment key={g.id}>
-                    <button className={"fcat group " + (groupOn ? "on" : "")}
-                            onClick={() => { setCats((v) => (groupOn ? v.filter((x) => !kids.includes(x)) : [...new Set([...v, ...kids])])); setPage(1); }}>
+                    <button className={"fcat group " + (groupOn ? "on" : "")} aria-pressed={groupOn}
+                            onClick={() => { if (!kids.length) pickLeaf(); else setCats((v) => (groupOn ? v.filter((x) => !kids.includes(x)) : [...new Set([...v, ...kids])])); setPage(1); }}>
                       {g.label}<span className="ct">{catCount(g.id)}</span>
                     </button>
                     {childrenOf(g.id).map((c) => (
@@ -7521,7 +7753,7 @@ export default function App({ initialView = "store" } = {}) {
           )}
         </div>
 
-        <div className="facet">
+        {tagFacets.length > 0 && <div className="facet">
           {facetHead("feat", "Features")}
           {openFacets.feat && (
             <div className="facet-b">
@@ -7531,12 +7763,11 @@ export default function App({ initialView = "store" } = {}) {
                   <span className="ct">{count}</span>
                 </button>
               ))}
-              {tagFacets.length === 0 && <p className="hint" style={{ margin: 0 }}>Product features will appear with the collection.</p>}
             </div>
           )}
-        </div>
+        </div>}
 
-        <div className="facet">
+        {products.some((p) => p.active && p.reviews > 0) && <div className="facet">
           {facetHead("rate", "Ratings")}
           {openFacets.rate && (
             <div className="facet-b">
@@ -7547,7 +7778,7 @@ export default function App({ initialView = "store" } = {}) {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         <div className="facet">
           {facetHead("avail", "Availability")}
@@ -7656,6 +7887,7 @@ export default function App({ initialView = "store" } = {}) {
     );
   };
 
+  const recentList = () => recent.map((id) => byId[id]).filter((p) => p && p.active).slice(0, 12);
   const renderRecent = () => {
     const list = recent.map((id) => byId[id]).filter(Boolean).slice(0, 6);
     if (list.length < 2) return null;
@@ -7712,9 +7944,36 @@ export default function App({ initialView = "store" } = {}) {
     onHome={() => { setStoreView("home"); window.scrollTo(0, 0); }} onShop={goShop} onSpecial={navSpecial}
     onAccount={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }}
     onTrack={() => { setStoreView("track"); window.scrollTo(0, 0); }}
-    onTrade={() => { setStoreView("b2b"); window.scrollTo(0, 0); }} onConsole={openConsole} onInfo={setInfoTopic} />;
+    onTrade={() => { setStoreView("b2b"); window.scrollTo(0, 0); }} onConsole={openConsole} onInfo={setInfoTopic}
+    onNotify={(msg) => pushToast(msg, Info)} />;
 
   /* ══════════════════════════ PRODUCT DETAIL ══════════════════════════ */
+  /* search engines and link previews: each product page gets its own title,
+     description and schema.org Product data (price, stock, brand) */
+  useEffect(() => {
+    if (typeof document === "undefined" || view !== "store") return;
+    const p = storeView === "product" && activeId ? byId[activeId] : null;
+    const base = "EPIC DEVICES | Better devices. Better experiences.";
+    const meta = document.querySelector('meta[name="description"]');
+    const old = document.getElementById("rv-product-ld");
+    if (old) old.remove();
+    if (!p) { document.title = base; return; }
+    const final = pInfo(p).final;
+    document.title = p.name + " | Price in Pakistan | " + config.storeName;
+    if (meta) meta.setAttribute("content", (p.name + ": " + money(final) + ". " + (p.blurb || "") + " Cash on delivery across Pakistan.").slice(0, 300));
+    const img = galleryFrames(p)[0];
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json"; ld.id = "rv-product-ld";
+    ld.textContent = JSON.stringify({
+      "@context": "https://schema.org", "@type": "Product", name: p.name, sku: p.sku,
+      brand: { "@type": "Brand", name: p.brand }, category: catLabel(p.category), description: p.blurb || undefined,
+      image: img ? new URL(img, location.href).href : undefined,
+      offers: { "@type": "Offer", priceCurrency: "PKR", price: Math.round(final), url: location.href,
+                availability: "https://schema.org/" + (isSoldOut(p) ? "OutOfStock" : "InStock"), itemCondition: "https://schema.org/NewCondition" },
+    });
+    document.head.appendChild(ld);
+  }, [view, storeView, activeId, byId]);
+
   const renderProductDetail = () => {
     const p = activeId ? byId[activeId] : null;
     if (!p) {
@@ -7730,10 +7989,18 @@ export default function App({ initialView = "store" } = {}) {
       );
     }
     const I = productIcon(p), inf = pInfo(p), out = isSoldOut(p);
-    const related = products.filter((x) => x.active && x.category === p.category && x.id !== p.id).slice(0, 3);
+    const related = products.filter((x) => x.active && x.category === p.category && x.id !== p.id)
+      .sort((a, b) => displaySold(b) - displaySold(a) || Math.abs(pInfo(a).final - inf.final) - Math.abs(pInfo(b).final - inf.final)).slice(0, 12);
+    /* a starter bundle: this item plus the most affordable in-stock pick from each
+       category that is usually bought with it */
+    const COMPANIONS = { mouse: ["keyboard", "audio"], keyboard: ["mouse", "audio"], audio: ["mouse", "keyboard"], ram: ["drives"], drives: ["ram"] };
+    const pickFrom = (cat) => products.filter((x) => x.active && x.category === cat && !isSoldOut(x)).sort((a, b) => pInfo(a).final - pInfo(b).final)[0];
+    const bundle = out ? [] : [p, ...(COMPANIONS[p.category] || []).map(pickFrom).filter(Boolean)].slice(0, 3);
     const margin = p.price > 0 ? Math.round(((p.price - p.cost) / p.price) * 100) : 0;
     const parent = catById[p.category] ? catById[catById[p.category].parentId] : null;
+    const plural = (CATALOG_CATEGORIES.find((c) => c.id === p.category) || {}).plural;
     return (
+      <>
       <section className="section"><div className="wrap">
         <div className="crumb-bar">
           <button className="crumb-btn" onClick={() => { setActiveId(null); setStoreView("home"); window.scrollTo(0, 0); }}>Home</button>
@@ -7755,13 +8022,13 @@ export default function App({ initialView = "store" } = {}) {
             <div className="bb-p">{money(inf.final)}{out ? " · sold out" : ""}</div>
           </div>
           <button className="btn btn-pri" disabled={out} onClick={() => { addToCart(p.id, pdQty); setCartOpen(true); }}>
-            <ShoppingCart size={15} /> {out ? "Sold out" : "Add to cart"}
+            <ShoppingBag size={15} /> {out ? "Sold out" : "Add to bag"}
           </button>
         </div>
         <div className="pdp">
           <div className="pdp-head">
             <button className="btn btn-sm" onClick={() => { setActiveId(null); goShop(p.category); }}><ChevronLeft size={14} /> Back to {catLabel(p.category)}</button>
-            <div className="pdp-brand">{p.brand} <span className="mono">{p.sku}</span></div>
+            <div className="pdp-brand"><button className="rv-pdp-logo" onClick={() => { setActiveId(null); goShop("All"); setBrands([p.brand]); }} aria-label={"More from " + p.brand}><BrandLogo brand={p.brand} /></button> <span className="mono">{p.sku}</span></div>
           </div>
           <div className="pdp-body">
             <div className="pd-hero">
@@ -7784,7 +8051,12 @@ export default function App({ initialView = "store" } = {}) {
                                  setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
                                }}
                                onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                        : <I size={84} strokeWidth={1.1} />)}
+                        : <span className="rv-pd-ph">
+                            <span className="rv-ph-brand">{p.brand}</span>
+                            <I size={96} strokeWidth={1.05} />
+                            <span className="rv-ph-specs">{(p.specs || []).filter(([k]) => !/model/i.test(k)).slice(0, 3).map(([k, v]) => <i key={k}>{v}</i>)}</span>
+                            <small>Product photo coming soon</small>
+                          </span>)}
                   {gallerySlide !== "video" && galleryFrames(p).length > 0 && (
                     <div className="zoombar">
                       <button onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.5) * 10) / 10))} disabled={zoom <= 1} aria-label="Zoom out"><Minus size={14} /></button>
@@ -7815,13 +8087,13 @@ export default function App({ initialView = "store" } = {}) {
                 <div className="pd-crumbtag">{catLabel(p.category)}</div>
                 <h1 className="pdp-title">{p.name}</h1>
                 {p.tagline ? <p className="pdp-tag">{p.tagline}</p> : null}
-                <div className="card-rate pd-rate">
+                {p.reviews > 0 && <div className="card-rate pd-rate">
                   {renderStars(p.rating, 14)}
                   <span className="rc">{p.rating.toFixed(1)}</span>
                   <span className="rdot" />
                   <span className="rc">{p.reviews.toLocaleString("en-US")} reviews</span>
                   {displaySold(p) > 0 && <><span className="rdot" /><span className="rc">{displaySold(p).toLocaleString("en-US")} sold</span></>}
-                </div>
+                </div>}
 
                 <div className="pd-price">
                   <span className="pd-now">{money(inf.final)}</span>
@@ -7848,7 +8120,7 @@ export default function App({ initialView = "store" } = {}) {
                   </div>
                   <button className="btn btn-pri btn-lg pd-cta" disabled={out}
                           onClick={() => { addToCart(p.id, pdQty); setCartOpen(true); }}>
-                    {out ? "Sold out" : <><ShoppingCart size={16} /> Add {pdQty > 1 ? pdQty + " to cart" : "to cart"}</>}
+                    {out ? "Sold out" : <><ShoppingBag size={16} /> Add {pdQty > 1 ? pdQty + " to bag" : "to bag"}</>}
                   </button>
                   <button className={"btn btn-lg icon-only " + (wishlist.includes(p.id) ? "btn-soft" : "")} onClick={() => toggleWish(p.id)} aria-label="Wishlist">
                     <Heart size={16} fill={wishlist.includes(p.id) ? "currentColor" : "none"} />
@@ -7859,7 +8131,9 @@ export default function App({ initialView = "store" } = {}) {
                 </div>
 
                 <div className="pd-trust">
-                  <div><span className="tk"><ShieldCheck size={15} /></span><b>{p.warranty} month warranty</b><small>Covered by the brand</small></div>
+                  {p.warranty > 0
+                    ? <div><span className="tk"><ShieldCheck size={15} /></span><b>{p.warranty} month warranty</b><small>Covered by the brand</small></div>
+                    : <div><span className="tk"><ShieldCheck size={15} /></span><b>Genuine stock</b><small>Checked before dispatch</small></div>}
                   <div><span className="tk"><RotateCcw size={15} /></span><b>{config.returnWindowDays} day returns</b><small>{config.deliveries ? (config.storePaysReturnFreight ? "Return pickup available" : "Return postage applies") : "Contact our team to arrange"}</small></div>
                   <div><span className="tk"><Banknote size={15} /></span><b>{config.deliveries ? "Cash on delivery" : "Store collection"}</b><small>{config.deliveries ? "Pay when your order arrives" : "Collect from our Lahore store"}</small></div>
                 </div>
@@ -7889,7 +8163,7 @@ export default function App({ initialView = "store" } = {}) {
                     <div><span className="sk">Category</span><span className="sv">{catLabel(p.category)}</span></div>
                     <div><span className="sk">Brand</span><span className="sv">{p.brand}</span></div>
                     <div><span className="sk">SKU</span><span className="sv mono">{p.sku}</span></div>
-                    <div><span className="sk">Warranty</span><span className="sv">{p.warranty} months</span></div>
+                    {p.warranty > 0 && <div><span className="sk">Warranty</span><span className="sv">{p.warranty} months</span></div>}
                     <div><span className="sk">Shipping weight</span><span className="sv">{(p.weightKg != null ? p.weightKg : (weightBy[p.category] || 0.3)).toFixed(2)} kg</span></div>
                   </div>
                 </div>
@@ -7901,29 +8175,40 @@ export default function App({ initialView = "store" } = {}) {
                     <div><span className="di"><MapPin size={14} /></span><div><b>Delivering to {form.city}</b><p>{cartBase.etaMin || 1} to {cartBase.etaMax || 3} working days by {(config.methods.find((m) => m.active !== false) || {}).name || "Standard"}.</p></div></div>
                     <div><span className="di"><Banknote size={14} /></span><div><b>Free over {money(config.freeShipThreshold)}</b><p>Otherwise delivery is calculated at checkout by weight and zone.</p></div></div>
                     <div><span className="di"><RotateCcw size={14} /></span><div><b>{config.returnWindowDays} days to change your mind</b><p>Raise a return from your orders page and we will book the pickup.</p></div></div>
-                    <div><span className="di"><ShieldCheck size={14} /></span><div><b>Genuine stock</b><p>Every unit is checked before dispatch and carries {p.warranty} months of brand warranty.</p></div></div>
+                    <div><span className="di"><ShieldCheck size={14} /></span><div><b>Genuine stock</b><p>Every unit is checked before dispatch{p.warranty > 0 ? " and carries " + p.warranty + " months of brand warranty" : ". Ask our team about warranty cover for this model"}.</p></div></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {related.length > 0 && (
-              <>
-                <div className="sec-title" style={{ marginBottom: 12 }}><span className="dashes"><i /><i /></span><h2 style={{ fontSize: 17 }}>Also in {catLabel(p.category)}</h2></div>
-                <div className="rel-grid">
-                  {related.map((r) => { const RI = productIcon(r); return (
-                    <button className="rel" key={r.id} onClick={() => openProduct(r.id)}>
-                      <span className="ic"><RI size={17} /></span>
-                      <div className="n">{r.name}</div>
-                      <div className="p">{money(pInfo(r).final)}</div>
-                    </button>
+            {bundle.length > 1 && (
+              <div className="rv-bundle">
+                <div className="rv-bundle-head"><span className="rv-eyebrow">Complete the setup</span><h2>Frequently bought together</h2></div>
+                <div className="rv-bundle-row">
+                  {bundle.map((b, i) => { const BI = productIcon(b); const img = galleryFrames(b)[0]; return (
+                    <React.Fragment key={b.id}>
+                      {i > 0 && <span className="rv-bundle-plus" aria-hidden="true"><Plus size={18} /></span>}
+                      <button className="rv-bundle-item" onClick={() => b.id !== p.id && openProduct(b.id)} aria-current={b.id === p.id ? "true" : undefined}>
+                        <span className="rv-bundle-media">{img ? <img src={img} alt="" loading="lazy" /> : <BI size={34} strokeWidth={1.3} />}</span>
+                        <span className="rv-bundle-brand">{b.brand}{b.id === p.id ? " · this item" : ""}</span>
+                        <span className="rv-bundle-name">{b.name}</span>
+                        <b>{money(pInfo(b).final)}</b>
+                      </button>
+                    </React.Fragment>
                   ); })}
+                  <div className="rv-bundle-total">
+                    <small>Total for {bundle.length} items</small>
+                    <strong>{money(bundle.reduce((t, b) => t + pInfo(b).final, 0))}</strong>
+                    <button className="btn btn-pri btn-lg" onClick={() => { bundle.forEach((b) => addToCart(b.id)); setCartOpen(true); }}><ShoppingBag size={17} /> Add all {bundle.length} to bag</button>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
       </div></section>
+      {related.length > 0 && <ProductRail eyebrow="Compare before you buy" title={plural ? "More " + plural.toLowerCase() : "More like this"} items={related} renderCard={renderCard} onViewAll={() => { setActiveId(null); goShop(p.category); }} />}
+      </>
     );
   };
 
@@ -7936,7 +8221,7 @@ export default function App({ initialView = "store" } = {}) {
         <div className="overlay" onClick={() => setCartOpen(false)} />
         <aside className="drawer" role="dialog" aria-modal="true" aria-label="Shopping bag" tabIndex={-1}>
           <div className="drawer-head">
-            <h3><ShoppingBag size={19} color="var(--blue)" /> Your cart <span className="pill soft">{cartCount} item{cartCount === 1 ? "" : "s"}</span></h3>
+            <h3><ShoppingBag size={19} color="var(--blue)" /> Your bag <span className="pill soft">{cartCount} item{cartCount === 1 ? "" : "s"}</span></h3>
             <button className="modal-x" aria-label="Close bag" onClick={() => setCartOpen(false)}><X size={17} /></button>
           </div>
           <div className="drawer-body">
@@ -8035,7 +8320,7 @@ export default function App({ initialView = "store" } = {}) {
           <div className="sec-title"><span className="dashes"><i /><i /></span><h2>Your Wishlist</h2></div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn" onClick={() => goShop("All")}><ChevronLeft size={15} /> Back to shop</button>
-            {list.length > 0 && <button className="btn btn-pri" onClick={moveWishlistToCart}><ShoppingCart size={15} /> Move all to cart</button>}
+            {list.length > 0 && <button className="btn btn-pri" onClick={moveWishlistToCart}><ShoppingCart size={15} /> Move all to bag</button>}
           </div>
         </div>
         {list.length === 0
@@ -8146,7 +8431,7 @@ export default function App({ initialView = "store" } = {}) {
           <button style={{ background: "none", border: "none", color: "inherit", fontWeight: 500 }} onClick={() => goShop("All")}>Shop</button>
           <span>/</span><b>Checkout</b>
         </div>
-        <div className="ed-preview-note"><Info size={18} /><span>Checkout preview. This order stays in this browser session; no payment is collected or order sent to the store.</span></div>
+        {server.status !== "online" && <div className="ed-preview-note"><Info size={18} /><span>Preview: this copy of the site is not connected to the store server, so an order stays in this browser.</span></div>}
         <div className="sec-head" style={{ marginBottom: 20 }}>
           <div className="sec-title"><span className="dashes"><i /><i /></span><h2>{config.deliveries ? "Delivery & payment" : "Collection & payment"}</h2></div>
         </div>
@@ -8244,8 +8529,8 @@ export default function App({ initialView = "store" } = {}) {
               {codeDiscount > 0 && <div className="sum-row disc"><span className="k">Discount</span><span className="v">−{money(codeDiscount)}</span></div>}
               <div className="sum-row"><span className="k">Parcel weight</span><span className="v">{cartBase.weight.toFixed(2)} kg</span></div>
               <div className="sum-row total"><span>Total</span><span className="v">{money(cartFinalTotal)}</span></div>
-              <button className="btn btn-pri btn-lg btn-block" style={{ marginTop: 14 }} onClick={placeOrder}>
-                <ShoppingBag size={17} /> Preview order · {money(cartFinalTotal)}
+              <button className="btn btn-pri btn-lg btn-block" style={{ marginTop: 14 }} onClick={placeOrder} disabled={placing} aria-busy={placing}>
+                <ShoppingBag size={17} /> {placing ? "Placing your order…" : server.status === "online" ? "Place order" : "Preview order"} · {money(cartFinalTotal)}
               </button>
               <p className="hint" style={{ textAlign: "center", marginTop: 10 }}>Arriving in {cartBase.etaMin}-{cartBase.etaMax} working days</p>
             </div>
@@ -8261,10 +8546,12 @@ export default function App({ initialView = "store" } = {}) {
     return (
       <section className="section"><div className="wrap"><div className="confirm">
         <div className="ok"><Check size={36} strokeWidth={2.6} /></div>
-        <h2>Order preview created</h2>
+        <h2>{server.status === "online" ? "Thank you, your order is placed" : "Order preview created"}</h2>
         <div style={{ textAlign: "center" }}><span className="oid">{o.id}</span></div>
         <p style={{ textAlign: "center", color: "var(--ink2)", fontSize: 14.5, marginBottom: 24 }}>
-          This preview is saved only for this browser session. No confirmation email was sent and no payment was collected. Contact the store to place a real order.
+          {server.status === "online"
+            ? "We will call you on " + (lastOrder.customer?.phone || "your number") + " to confirm delivery. Keep your order number to track it any time."
+            : "This preview is saved only for this browser session. No confirmation email was sent and no payment was collected. Contact the store to place a real order."}
         </p>
         <div className="panel">
           {o.lines.map((l) => {
@@ -8281,7 +8568,7 @@ export default function App({ initialView = "store" } = {}) {
           <div className="sum-row" style={{ marginTop: 10 }}><span className="k">{config.deliveries ? "Shipping" : "Store collection"}</span><span className="v">{o.shipping === 0 ? "FREE" : money(o.shipping)}</span></div>
           {o.discount > 0 && <div className="sum-row disc"><span className="k">Discount {o.promoCode ? "(" + o.promoCode + ")" : ""}</span><span className="v">−{money(o.discount)}</span></div>}
           <div className="sum-row total"><span>Order total</span><span className="v">{money(o.total)}</span></div>
-          <p className="hint" style={{ marginTop: 6 }}>{config.deliveries ? "Confirm delivery and payment directly with the store." : "Confirm collection and payment directly with the store."}</p>
+          <p className="hint" style={{ marginTop: 6 }}>{server.status === "online" ? (lastOrder.paymentMethod === "cod" ? "Pay in cash when your order arrives." : "We will share payment details when we confirm your order.") : config.deliveries ? "Confirm delivery and payment directly with the store." : "Confirm collection and payment directly with the store."}</p>
         </div>
         <div style={{ display: "flex", gap: 9, marginTop: 18, justifyContent: "center", flexWrap: "wrap" }}>
           <button className="btn btn-pri" onClick={() => goShop("All")}>Keep shopping</button>
@@ -8652,7 +8939,7 @@ export default function App({ initialView = "store" } = {}) {
                     <div className="field"><label>What are you after</label>
                       <select className="inp" value={f.interest} onChange={(e) => setF({ interest: e.target.value })}>
                         <option value="">Pick a category</option>
-                        {children.map((c) => <option key={c.id} value={c.label}>{c.label}</option>)}
+                        {(children.length ? children : parents).map((c) => <option key={c.id} value={c.label}>{c.label}</option>)}
                         <option value="Mixed order">A mix of things</option>
                       </select>
                     </div>
@@ -8794,6 +9081,55 @@ export default function App({ initialView = "store" } = {}) {
     setDashFrom(isoDay(k === "all" ? Date.now() - 365 * DAY : s.getTime()));
     setDashTo(isoDay(Date.now()));
   };
+
+  /* Stock movement for the dashboard: what sells fast, what sits, and which suppliers
+     deliver stock that sells and does not come back faulty. Every sale counts once:
+     website orders plus confirmed sale invoices, the same doors channelData uses. */
+  const movement = useMemo(() => {
+    const { a, b } = dashRange;
+    const days = Math.max(1, Math.ceil((b - a) / DAY));
+    const sold = {}, soldAll = {}, lastSold = {};
+    const tally = (id, qty, at) => {
+      if (!id) return;
+      soldAll[id] = (soldAll[id] || 0) + qty;
+      lastSold[id] = Math.max(lastSold[id] || 0, at || 0);
+      if (at >= a && at <= b) sold[id] = (sold[id] || 0) + qty;
+    };
+    orders.filter((o) => o.status !== "Cancelled").forEach((o) => o.lines.forEach((l) => tally(l.id, num(l.qty), o.createdAt)));
+    docs.filter((d) => d.side === "sale" && d.stage === "invoice" && d.confirmed).forEach((d) => (d.lines || []).forEach((l) => tally(l.id, num(l.qty), d.at)));
+    const rows = products.filter((p) => p.active && p.kind !== "service").map((p) => {
+      const units = sold[p.id] || 0, perDay = units / days;
+      const unitValue = p.cost > 0 ? p.cost : p.price;
+      return { p, units, perDay, cover: perDay > 0 ? p.stock / perDay : Infinity, last: lastSold[p.id] || 0,
+               tied: Math.max(0, p.stock) * unitValue, revenue: units * p.price };
+    });
+    const fast = rows.filter((r) => r.units > 0).sort((x, y) => y.units - x.units || y.revenue - x.revenue).slice(0, 6);
+    const fastIds = new Set(fast.map((r) => r.p.id));
+    const slow = rows.filter((r) => r.p.stock > 0 && !fastIds.has(r.p.id))
+      .sort((x, y) => x.perDay - y.perDay || y.tied - x.tied).slice(0, 6);
+    const slowTied = rows.filter((r) => r.p.stock > 0 && r.units === 0).reduce((t, r) => t + r.tied, 0);
+
+    const lotSupplier = Object.fromEntries(lots.map((l) => [l.id, l.supplierId]));
+    const vendors = suppliers.map((sup) => {
+      const pos = purchases.filter((po) => po.supplierId === sup.id);
+      const bought = pos.filter((po) => po.kind !== "return"), returned = pos.filter((po) => po.kind === "return");
+      const units = bought.reduce((t, po) => t + po.lines.reduce((x, l) => x + num(l.qty), 0), 0);
+      const back = returned.reduce((t, po) => t + po.lines.reduce((x, l) => x + num(l.qty), 0), 0);
+      const spend = bought.reduce((t, po) => t + num(po.total), 0);
+      const faultsUnits = faults.filter((f) => (f.supplierId || lotSupplier[f.lotId]) === sup.id).reduce((t, f) => t + num(f.qty), 0);
+      const ids = new Set(bought.flatMap((po) => po.lines.map((l) => l.id)));
+      const soldUnits = [...ids].reduce((t, id) => t + (soldAll[id] || 0), 0);
+      const sellThrough = units > 0 ? Math.min(1, soldUnits / units) : 0;
+      const defect = units > 0 ? Math.min(1, (faultsUnits + back) / units) : 0;
+      const credit = Math.min(60, num(sup.terms)) / 60;
+      /* half on whether their stock sells, a third on whether it arrives sound, the rest on credit terms */
+      const score = units > 0 ? Math.round(100 * (0.5 * sellThrough + 0.35 * (1 - Math.min(1, defect * 5)) + 0.15 * credit)) : null;
+      const last = bought.reduce((t, po) => Math.max(t, po.at || 0), 0);
+      return { sup, orders: bought.length, units, spend, faultsUnits: faultsUnits + back, sellThrough, defect, score, last, products: ids.size };
+    }).sort((x, y) => (y.score ?? -1) - (x.score ?? -1) || y.spend - x.spend);
+    const atPrice = rows.some((r) => r.p.stock > 0 && r.units === 0 && !(r.p.cost > 0));
+    return { days, fast, slow, slowTied, atPrice, vendors };
+  }, [dashRange, orders, docs, products, suppliers, purchases, faults, lots]);
 
   const channelData = useMemo(() => {
     const { a, b } = dashRange;
@@ -9203,6 +9539,59 @@ export default function App({ initialView = "store" } = {}) {
           </div>
         </div>
 
+        {(() => {
+          const M = movement;
+          const ago = (t) => { if (!t) return "never sold"; const d = Math.floor((Date.now() - t) / DAY); return d <= 0 ? "sold today" : "last sold " + d + " day" + (d === 1 ? "" : "s") + " ago"; };
+          const coverTxt = (c) => c === Infinity ? "no sales yet" : c < 1 ? "under a day left" : Math.round(c) + " days of stock";
+          const tone = (sc) => sc == null ? "" : sc >= 75 ? "ok" : sc >= 50 ? "mid" : "bad";
+          return (
+            <div className="mv-grid">
+              <div className="cpanel mv-panel">
+                <div className="cpanel-h"><h3><Zap size={16} /> Fast-moving items</h3><div className="r"><span className="spec">units sold · {M.days} day{M.days === 1 ? "" : "s"}</span></div></div>
+                <div className="cpanel-b">
+                  {M.fast.length === 0 && <p className="hint" style={{ marginTop: 0 }}>Nothing has sold in this range yet. Fast movers appear here as orders come in.</p>}
+                  {M.fast.map((r, i) => (
+                    <button className="mv-row" key={r.p.id} onClick={() => { setTab("inventory"); }}>
+                      <span className="mv-rank">{i + 1}</span>
+                      <span className="mv-main"><b>{r.p.name}</b><small>{r.p.brand} · {coverTxt(r.cover)}{r.cover < 14 && <em className="mv-warn"> · reorder soon</em>}</small></span>
+                      <span className="mv-num"><b>{r.units}</b><small>{(r.perDay * 7).toFixed(1)}/wk</small></span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="cpanel mv-panel">
+                <div className="cpanel-h"><h3><Clock size={16} /> Slow-moving items</h3><div className="r"><span className="spec" title={M.atPrice ? "Valued at selling price where no cost price is entered" : "Valued at cost"}>{money(M.slowTied)} idle{M.atPrice ? " at retail" : ""}</span></div></div>
+                <div className="cpanel-b">
+                  {M.slow.length === 0 && <p className="hint" style={{ marginTop: 0 }}>No slow stock: everything in stock sold in this range.</p>}
+                  {M.slow.map((r) => (
+                    <button className="mv-row" key={r.p.id} onClick={() => { setTab("promotions"); }}>
+                      <span className="mv-main"><b>{r.p.name}</b><small>{r.p.stock} in stock · {ago(r.last)}</small></span>
+                      <span className="mv-num"><b>{money(r.tied)}</b><small>{r.units ? r.units + " sold" : "0 sold"}</small></span>
+                      <span className="mv-flag">{r.units ? "Slow" : "Idle"}</span>
+                    </button>
+                  ))}
+                  {M.slow.length > 0 && <p className="hint mv-tip">Idle stock ties up cash. Try an offer under Promotions or a bundle with a fast mover.</p>}
+                </div>
+              </div>
+              <div className="cpanel mv-panel">
+                <div className="cpanel-h"><h3><Warehouse size={16} /> Vendor scorecard</h3><div className="r"><button className="btn btn-sm" onClick={() => setTab("vendors")}>Vendors</button></div></div>
+                <div className="cpanel-b">
+                  {M.vendors.length === 0 && <p className="hint" style={{ marginTop: 0 }}>Add your suppliers under Vendors and record purchases. Each one is then scored on how well their stock sells, how much arrives faulty or goes back, and their credit terms.</p>}
+                  {M.vendors.slice(0, 6).map((v) => (
+                    <div className="mv-row vendor" key={v.sup.id}>
+                      <span className={"mv-score " + tone(v.score)}>{v.score == null ? "–" : v.score}</span>
+                      <span className="mv-main"><b>{v.sup.name}</b>
+                        <small>{v.units ? Math.round(v.sellThrough * 100) + "% sold through · " + (v.defect * 100).toFixed(1) + "% faulty or returned · " + (v.sup.terms || 0) + "-day terms" : "No purchases recorded yet"}</small></span>
+                      <span className="mv-num"><b>{money(v.spend)}</b><small>{v.orders} PO{v.orders === 1 ? "" : "s"}</small></span>
+                      {v.score != null && <span className={"mv-flag " + tone(v.score)}>{v.score >= 75 ? "Preferred" : v.score >= 50 ? "Good" : "Review"}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="cpanel" style={{ marginTop: 14 }}>
           <div className="cpanel-h">
             <h3><History size={16} /> Recent activity</h3>
@@ -9398,7 +9787,7 @@ export default function App({ initialView = "store" } = {}) {
             <button className="btn btn-sm" onClick={() => bulkPrice(10)}><TrendingUp size={13} /> +10% price</button>
             <select onChange={(e) => { bulkMove(e.target.value); e.target.value = ""; }} defaultValue="">
               <option value="" disabled>Move to category…</option>
-              {children.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              {(children.length ? children : parents).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
             <button className="btn btn-sm" onClick={bulkDelete} style={{ color: "#FFB4A2" }}><Trash2 size={13} /> Delete</button>
             <button className="btn btn-sm" style={{ marginLeft: "auto" }} onClick={() => setSelected([])}>Clear</button>
@@ -10135,7 +10524,7 @@ export default function App({ initialView = "store" } = {}) {
                 {draft.scope === "all" ? <input className="finp" value="Whole catalog" disabled /> : (
                   <select className="finp" value={draft.target} onChange={(e) => setDraft({ ...draft, target: e.target.value })}>
                     <option value="">Choose…</option>
-                    {draft.scope === "category" && children.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    {draft.scope === "category" && (children.length ? children : parents).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                     {draft.scope === "brand" && allBrands.map((b) => <option key={b} value={b}>{b}</option>)}
                     {draft.scope === "product" && products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -17011,13 +17400,13 @@ export default function App({ initialView = "store" } = {}) {
                   <div className="field"><label>Category</label>
                     <select className="finp" value={d.category} onChange={(e) => setD({ category: e.target.value })}>
                       <option value="">Choose a category…</option>
-                      {parents.map((g) => (
+                      {parents.map((g) => (childrenOf(g.id).length ? (
                         <optgroup label={g.label} key={g.id}>
                           {childrenOf(g.id).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </optgroup>
-                      ))}
+                      ) : <option key={g.id} value={g.id}>{g.label}</option>))}
                     </select>
-                    {children.length === 0 && <p className="hint">No categories exist yet. Create one in the Categories tab first.</p>}
+                    {categories.length === 0 && <p className="hint">No categories exist yet. Create one in the Categories tab first.</p>}
                   </div>
                 </div>
                 <div className="form-row">
@@ -17151,6 +17540,12 @@ export default function App({ initialView = "store" } = {}) {
                     <span>JPG, PNG or WebP. Up to 8 at a time, resized automatically.</span>
                   </div>
                   <input ref={productImgInput} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={onProductImageFiles} />
+                  <div className="rv-import-row">
+                    <input className="finp" value={photoLink} placeholder="Paste an image address, e.g. from Google Images"
+                           onChange={(e) => setPhotoLink(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); importPhotoLink(); } }} />
+                    <button className="btn btn-sm btn-pri" disabled={!photoLink.trim() || importingPhoto} onClick={importPhotoLink}>{importingPhoto ? "Importing…" : <><Download size={13} /> Import</>}</button>
+                  </div>
+                  <p className="hint">In Google Images, open the photo, right-click it, choose "Copy image address" and paste it here. The shop keeps its own copy. Use photos you are allowed to use, such as the brand's official images.</p>
                   {(d.image || (d.images || []).length > 0) && (
                     <div className="shotgrid">
                       {[d.image, ...(d.images || [])].filter(Boolean).map((u, i) => (
@@ -17600,9 +17995,9 @@ export default function App({ initialView = "store" } = {}) {
   const inConsole = view === "console" && authed;
   return (
     <div className={"tx epic-upgrade th-" + config.theme + (animOn ? " anim" : "")}>
-      <style>{CSS_A + CSS_B + CSS_C + CSS_D + themeCss(config.theme) + UPGRADE_CSS + EXPERIENCE_CSS}</style>
+      <style>{CSS_A + CSS_B + CSS_C + CSS_D + themeCss(config.theme) + UPGRADE_CSS + EXPERIENCE_CSS + REVAMP_CSS}</style>
 
-      {view === "store" && initialView !== "console" && (
+      {view === "store" && (
         <>
           <a className="skip-link" href="#main-content">Skip to content</a>
           {renderAnnouncement()}
@@ -17612,13 +18007,7 @@ export default function App({ initialView = "store" } = {}) {
           <main id="main-content" tabIndex={-1}>
           {storeView === "home" && (
             <>
-              {renderHero()}
-              {renderCategoryRow()}
-              <DiscoveryStrip onFinder={() => setFinderOpen(true)} />
-              {renderFeatured()}
-              {renderNewsBand()}
-              {renderPromoBanners()}
-              {renderRecent()}
+              {renderHome()}
             </>
           )}
           {storeView === "shop" && (
@@ -17647,6 +18036,13 @@ export default function App({ initialView = "store" } = {}) {
             wished={wishlist.includes(quickId)} compared={compare.includes(quickId)} cartQuantity={cart.find(l => l.id === quickId)?.qty || 0} config={config}
             onClose={() => setQuickId(null)} onAdd={addToCart} onWish={() => toggleWish(quickId)} onCompare={() => toggleCompare(quickId)}
             onDetails={() => { setQuickId(null); openProduct(quickId); }} onBag={() => { setQuickId(null); setCartOpen(true); }} />}
+          {config.storePhone && <WhatsAppFab config={config} product={storeView === "product" ? byId[activeId] : null} price={storeView === "product" && byId[activeId] ? money(pInfo(byId[activeId]).final) : ""} />}
+          <BottomNav active={storeView === "home" ? "home" : storeView === "portal" ? "account" : ""} cartCount={cartCount}
+            onHome={() => { setStoreView("home"); setMobileMenu(false); window.scrollTo(0, 0); }}
+            onCategories={() => setMobileMenu(true)}
+            onSearch={() => { window.scrollTo(0, 0); setTimeout(() => document.getElementById("rv-search-input")?.focus(), 60); }}
+            onCart={() => setCartOpen(true)}
+            onAccount={() => { setStoreView("portal"); setPortalOrder(null); window.scrollTo(0, 0); }} />
           {renderCartDrawer()}
           {renderCompareTray()}
           {renderCompareModal()}

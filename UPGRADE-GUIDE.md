@@ -1,10 +1,11 @@
-# EPIC DEVICES 5.0: what customers can do
+# EPIC DEVICES 5.2: what customers can do
 
-- **Browse:** Mice, Keyboards, Headsets and microphones, RAM and Hard drives, each with its own page. Brand, budget and sort choices create shareable links.
-- **Search:** Try "wireless mouse under 10k", a model name, a brand or "16GB DDR4". Ctrl+K (Cmd+K on a Mac) jumps to search. Arrow keys pick a suggestion.
-- **Hero slider:** Three slides in one brand tone. It pauses on hover or keyboard focus, has a pause button, swipes on phones and does not autoplay for people who prefer reduced motion.
-- **Find my upgrade:** Choose a category and a budget to see what fits.
-- **Compare:** Tap the layers icon on two to four products, then Compare now.
-- **Save:** The heart keeps products in this browser.
-- **Bag and WhatsApp:** Add products, then Send enquiry on WhatsApp. The message lists every product with quantity, price and reference. Email, copy and download are also available. Nothing is charged on the website.
-- **Product pages:** Specifications, compatibility notes for RAM and drives, and Ask on WhatsApp for a quick question about that product.
+- **Browse and search** the catalogue by category, brand and price, with new arrivals, offers and a wishlist.
+- **Check out for delivery:** enter contact details, city and address, choose Standard, Express or Same-day delivery (Same-day in major cities), and pay by cash on delivery or card/bank transfer.
+- **Get an order number** such as ED-5ZMLB9 on the confirmation page, and use Track order at any time to see its status.
+- **Compare products, use the finder,** and send B2B and wholesale enquiries.
+
+What the shop can do in the console:
+
+- See every website order under Orders, move it through Processing, Packed, Shipped, Out for delivery and Delivered, and mark it paid.
+- Edit products, prices, stock, photos, categories, offers and delivery settings; the storefront updates for every visitor.
