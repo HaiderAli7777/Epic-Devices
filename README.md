@@ -1,123 +1,110 @@
-# EPIC DEVICES — Website Upgrade 3.0
+# EPIC DEVICES storefront 5.0
 
-Prepared for Haider Ali. Deployment format: GitHub repository → Hostinger static website.
+Static storefront for **epicdevicesltd.com** plus the business console, ready to upload to GitHub and deploy on Hostinger. No server code and no Node.js are needed on the hosting plan: the built files are already in this folder.
 
-This package contains the finished website and editable React source. The build is already included. You do not need Node.js or an npm build on Hostinger.
+## What changed in 5.0
 
-## Deploy these files
+- **New logo everywhere.** The supplied logo was traced into sharp vector files (`assets/brand/`). It is used in the header, footer, loading screen, console, invoices, favicon, home-screen icons and the link preview image.
+- **One brand theme.** Every colour comes from the logo: the cobalt blue of the E and the graphite of the D, on a cool white page. The console no longer offers alternative themes; its settings page shows the locked brand theme instead.
+- **New hero slider in a single tone.** All slides share one blue studio backdrop with the logo's E as a watermark. Only the product and the words change. The sparkle icon and the mixed-colour slide backgrounds are gone.
+- **Slider behaviour.** Autoplay every 6.5 seconds with a progress bar, pause and play button, previous and next buttons, swipe on phones, arrow keys, and automatic pause on hover, on keyboard focus and in background tabs. People who ask their device for reduced motion get no autoplay.
+- **WhatsApp ordering.** The bag sends the whole enquiry to WhatsApp (+92 305 7777817) with products, quantities, prices and references filled in. Each product page has an "Ask on WhatsApp" button. Email, copy and download remain as alternatives.
+- **Real contact details.** hello@epicdevicesltd.com, +92 305 7777817 and epicdevicesltd.com across the storefront, console and invoices. The old, unverified shop address is no longer shown.
+- **Fonts hosted with the site.** Saira (display) and Plus Jakarta Sans (text) load from `assets/fonts`. Nothing is loaded from Google, which is faster in Pakistan and simplifies the security policy.
+- **Search engines and sharing.** Page title, description, canonical URL, Open Graph image, structured data for the store, `sitemap.xml` and an updated `robots.txt`.
 
-1. Extract this ZIP on your computer.
-2. Upload the **contents** to the root of your GitHub repository. Do not upload only the ZIP, and do not put the entire site inside an extra folder.
-3. Preserve the `assets/` and `src/` folders. `index.html` must be at the repository root.
-4. Connect the repository and the intended branch to your Hostinger website's Git deployment.
-5. Deploy the repository contents to the website's document root, normally `public_html`. If the Git directory field represents a subfolder inside that root, leave it blank for a root-domain deployment.
-6. Ensure SSL is enabled for the domain. The included Apache configuration redirects HTTP to HTTPS.
-7. Open the website over HTTPS. The first slider panel should say “Your world. On repeat.”
+## Upload to GitHub, then deploy on Hostinger
 
-The files needed to display the website are:
+Your repository is already connected to hPanel's Git integration, so each deploy copies the repository into `public_html`.
 
-| Path | Purpose |
-| --- | --- |
-| `index.html` | Homepage, at the repository root |
-| `assets/app-*.js` | Finished application bundle; the filename changes when code changes |
-| `assets/epic-hero.webp` | Supporting audio collection artwork |
-| `assets/epic-collections.webp` | Collection artwork |
-| `assets/slide-*-v3-*.webp` | Responsive images for the three new slider scenes |
-| `assets/fonts/` | Local house fonts and their licenses |
-| `.htaccess` | Apache index, HTTPS, caching and response headers |
-| `robots.txt` | Crawler settings |
+**Option A: GitHub Desktop or the git command line (recommended, it removes old files)**
 
-Keep the generated assets in Git. They are deliberately **not** excluded by `.gitignore`.
+1. Unzip `epic-devices-v5.zip`. Inside is a folder whose top level contains `index.html`.
+2. Open your local copy of the repository. Delete everything in it **except the hidden `.git` folder**.
+3. Copy all files from the unzipped folder into the repository folder, including the hidden `.htaccess` and `.gitignore`.
+4. Commit with a message such as `EPIC DEVICES 5.0` and push to the `main` branch.
 
-## What changed
+**Option B: the GitHub website**
 
-- Three individually art-directed slider scenes: audio, workspace and power, each with its own image, palette, copy and collection link.
-- Crossfades, thumbnail navigation, previous/next controls, a live timer, keyboard arrows and horizontal touch gestures. Autoplay pauses on hover, while offscreen and when the browser tab is hidden. Manual selection or keyboard focus stops it until Play is chosen. Reduced-motion preferences disable autoplay and transitions.
-- A three-step product finder that uses actual catalog prices, categories and availability, with budget and sorting preferences. Its result link transfers those choices to the catalog. Empty results offer a prefilled email enquiry.
-- Product quick view with image selection, specifications, stock-aware quantity controls, wishlist, comparison and the shared shopping bag.
-- A redesigned comparison dialog with a differences-only filter, price highlights, product removal and stock-aware add-to-bag controls.
-- Keyboard search suggestions: Up/Down selects a result, Enter opens it, and Escape dismisses the list.
-- Native modal focus containment and Escape dismissal for the finder, quick view and comparison.
-- A new premium storefront with a cinematic hero, original imagery, clearer navigation and six collection cards.
-- A wider product search with matching product suggestions and a keyboard shortcut.
-- Updated product cards, catalog filters, comparison, shopping bag and checkout appearance.
-- Mobile navigation, a collapsible filter panel, and a mobile menu for the business console.
-- A refreshed console sidebar, header, revenue cards, panels, tables and forms.
-- Keyboard focus handling for the cart and navigation, Escape dismissal, a skip link and reduced-motion support.
-- Cart and product quantities are limited by stock. Collection-only orders no longer show free-shipping offers or accrue an internal courier cost.
-- Newsletter controls now prepare a real email request in the visitor's email application; they no longer claim an unsent subscription succeeded.
-- Checkout is explicitly a session preview. Selecting a card method does not mark a payment as received.
-- The flattened upload has been restored to the directory structure expected by its build.
-- Generated JavaScript filenames contain a content hash, preventing the old fixed `app.js` cache problem on future uploads.
+1. In the repository on github.com, delete the old files that 5.0 no longer uses: `assets/app-*.js` and `assets/console-*.js` from 4.0, `assets/epic-hero.webp`, `assets/slide-*-v3-*.webp`, and the `inter` and `sora` files in `assets/fonts`.
+2. Choose **Add file, Upload files**, and drag in the **contents** of the unzipped folder, not the folder itself, so `index.html` stays at the repository root.
+3. On a Mac, press **Cmd + Shift + .** in Finder first so the hidden `.htaccess` file is visible and gets uploaded.
+4. Commit the changes to `main`.
 
-The existing product, inventory, purchasing, sales, accounting, HR and other console screens remain in the application. Their accounting, tax and payroll rules were not re-audited or updated for current legislation by this visual upgrade.
+**Deploy on Hostinger**
 
-## Edit and rebuild locally
+1. hPanel, **Websites, Manage, Advanced, Git**.
+2. Next to the connected repository, click **Deploy**. With auto deployment switched on, the push already did this.
+3. Open https://epicdevicesltd.com and press **Ctrl + F5** once to skip your browser's cache.
 
-Use Node.js 20 or later. From the extracted project directory:
+Quick checks after deploying: the new logo and favicon appear, the slider moves and pauses when you hover over it, the WhatsApp button opens a chat with +92 305 7777817, and `https://epicdevicesltd.com/src/` shows "Forbidden".
+
+## Editing the site
+
+The built site is `index.html`, `console.html` and `assets/`. After editing anything in `src/`, rebuild:
 
 ```bash
-npm ci
-npm run build
-npm run dev
+npm ci          # first time only, needs Node.js 20 or newer
+npm run build   # rebuilds index.html, console.html and the bundles
+npm test        # 10 checks for prices, search, bag, compare and routes
 ```
 
-Open the local address printed by the preview command. The default is `http://127.0.0.1:4173`.
+Commit the rebuilt files together with your edits. `node_modules` is ignored by `.gitignore` and must not be uploaded.
 
-After editing, run `npm run build` again. Commit the changed source, `index.html`, and the new `assets/app-*.js` to GitHub, then deploy that version from Hostinger. The build removes only old generated entry bundles from your local `assets/` directory.
-
-| File | Edit here |
+| To change | Edit |
 | --- | --- |
-| `src/storefront.jsx` | Header, collections, restock request, footer and information panels |
-| `src/experience.jsx` | Version 3 slider, finder, quick view and comparison |
-| `src/experience.css` | Version 3 responsive visual styling |
-| `src/slider-content.json` | Slider copy, images, category links, timing and autoplay default |
-| `src/upgrade.css` | New storefront and console styling, including responsive rules |
-| `src/app.jsx` | Existing business workflows, catalog, configuration and integration |
-| `src/shell.head.html` | Page title, description, preloads and loading state |
-| `build.mjs` | Production build |
-| `dev.mjs` | Local preview server |
+| Phone, WhatsApp number, email, city | `src/store-config.json` (WhatsApp number in international format without +) |
+| Hero slides, their words and links | `SLIDES` near the top of `src/retail.jsx`; images in `assets/slides/` |
+| Colours, spacing, typography | tokens at the top of `src/retail.css` |
+| Products and prices | `src/catalog/products.json`, then `npm run check:catalog` |
+| Product photos | put files in `assets/products/` and list them in the product's `images` |
+| Page title, description, preview image | `src/shell.head.html` |
 
-The house theme loads its fonts and images from this package. Alternate themes can request their fonts from Google Fonts.
+Slide images are transparent WebP files at 1200 x 900 and 700 x 525 pixels with the product sitting near the bottom centre. Keeping that format keeps every slide in the same tone.
 
-## Edit the slider
+## Catalogue and pricing
 
-Edit `src/slider-content.json`, run `npm run build`, then commit the changed source, generated `index.html` and new application bundle. The current package already includes the finished build.
+49 products across Mouse (12), Keyboard (3), Headsets and microphones (13), RAM (10) and Hard drives (11), taken from indexed Czone listings on 23 September 2026. Every selling price is the Czone source price x 1.10, calculated in paisa. Product photographs are still to be added; until then each card shows a clean placeholder with the brand name and "Photo coming soon". The storefront works in enquiry mode: availability, delivery and warranty are confirmed with the customer before payment. See `CATALOGUE-STATUS.md` and `reports/catalog-price-audit.csv`.
 
-- `autoplay` controls the initial setting; visitors can pause or play it.
-- `durationMs` controls each slide's duration (minimum 5,000 milliseconds).
-- Each slide has a unique `id`, a `theme` (`ice`, `sage` or `midnight`), `title`, `accent`, `description`, button `cta`, target `category`, and navigation `label`/`subtitle`.
-- `image` and `smallImage` point to the full and small WebP assets. `alt` describes the illustration. Update image filenames when replacing artwork to avoid an old cached image.
-- Keep each headline line short; the supplied content has been checked down to 320-pixel screens.
-- Use category IDs already present in your catalog. The current slides link to `Headphones`, `grp_desk` and `grp_power`.
+## Business console
 
-See `UPGRADE-GUIDE.md` for a compact guide to the new customer features.
+`console.html` (not indexed by search engines). Demo sign-in: `admin` / `epic123`. It uses the same logo, theme and fonts as the storefront. Records created there live only in that browser session. Leaving the console opens the live storefront.
 
-## Current application limits
+## Files
 
-This remains a **front-end application**, as in the supplied source. Deploying it on GitHub and Hostinger publishes the interface; it does not create a database or payment service.
+```
+index.html, console.html     built pages (do not edit by hand)
+assets/app-*.js              storefront bundle, about 275 KB
+assets/console-*.js          console bundle, loads only on console.html
+assets/brand/                logo files, favicon, app icons, og-image.jpg
+assets/slides/               single-tone product cutouts for the slider
+assets/fonts/                Saira and Plus Jakarta Sans with their OFL licences
+src/                         source code (blocked from the web by .htaccess)
+tests/, scripts/, reports/   checks, catalogue tools and the price audit
+.htaccess                    HTTPS, security headers, caching, source protection
+robots.txt, sitemap.xml, site.webmanifest, favicon.ico
+```
 
-- Product changes, orders, invoices and business records live in browser memory and reset on reload. Nothing is shared between visitors.
-- The console sign-in is a browser-side demonstration, not secure authentication. Do not enter confidential business or customer data. Its original demonstration credentials are `admin` / `epic123`.
-- Checkout creates a session preview only. No order is sent, no confirmation email is sent and no payment is collected.
-- Contact and restock links open the visitor's email or phone application. An email is sent only when the visitor sends it there.
-- The catalog remains empty by default, matching the uploaded source. The homepage shows collections instead of invented stock or sales.
-- The provided contact phone, email, domain, address, commercial policies and product information are inherited from the source. Confirm and replace them before publishing.
+## Completing the catalogue import
 
-For real sales and business operations, connect server-side authentication, a database, validated product/stock/order APIs, an email service and an appropriate payment gateway. A static deployment alone is insufficient.
+The full Czone catalogue and original photos still need an authorised export or browsing session. Keep source URLs and prices, store photos in `assets/products/`, then run:
 
-## Store identity and data
+```bash
+npm run import:catalog -- /path/to/verified-products.json
+npm run build
+npm test
+npm run check:release
+```
 
-Search for `INITIAL_CONFIG` in `src/app.jsx` to edit the store name, contact information, delivery settings and other defaults, then rebuild. Settings changed through the current console are session-only.
+`check:release` fails on purpose until every product has a live verification date and a local photo. `npm run check:catalog` checks structure and arithmetic only.
 
-`DEMO = false` is preserved. Setting it to `true` loads the source's example products **and** fictional business records. Use that only for a private demonstration, never as real trading data. Category and hero artwork is conceptual and must not be represented as a photograph of a specific product model for sale.
+## Operating limits
 
-## Troubleshooting deployment
+- Enquiry mode: adding to the bag does not reserve stock or take payment. Sending on WhatsApp or email starts the conversation; the customer still presses send.
+- Bag, saved items, comparison and recently viewed products live in the visitor's browser only.
+- The console sign-in is a browser-side demonstration with session-only records. Do not use it for confidential or real operational data until it has server-side accounts and storage.
+- Console stock and cost start at zero, meaning not entered yet.
+- Delivery charges, returns and warranty are agreed with each customer before payment.
+- Add the verified shop address to `src/store-config.json` only when you want it shown.
 
-- **Old design:** confirm the updated `index.html` and its referenced hashed JavaScript file were deployed together. Hard-refresh once and clear any Hostinger cache if enabled.
-- **Blank page:** confirm there is an `assets/` folder beside `index.html`. Uploading the original flattened filenames will not work.
-- **404 or 403:** confirm `index.html` is in the domain's actual document root and the deployment did not add an extra top-level folder. The package includes `DirectoryIndex index.html`.
-- **HTTPS problem:** confirm the domain has an active SSL certificate before using the HTTPS redirect.
-- **Changes disappear after refresh:** this is the existing front-end storage limitation, not a GitHub or Hostinger deployment error.
-
-See `VALIDATION.md` for the performed checks and `ASSET-NOTES.md` for artwork and font details.
+Author: Haider Ali.

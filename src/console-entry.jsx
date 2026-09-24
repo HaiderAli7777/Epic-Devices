@@ -1,5 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import Retail from './retail.jsx';
-createRoot(document.getElementById('root')).render(<Retail />);
+import App from './app.jsx';
+createRoot(document.getElementById('root')).render(<App initialView="console" />);
 requestAnimationFrame(() => document.getElementById('boot')?.remove());

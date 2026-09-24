@@ -13,7 +13,7 @@ createServer(async (req, res) => {
     let pathname = decodeURIComponent(url.pathname);
     if (pathname === "/") pathname = "/index.html";
     const path = resolve(root, "." + pathname);
-    if (!path.startsWith(root + sep) || /(^|\/)\.|^\/(src|node_modules)(\/|$)|\.(jsx|mjs|json|md)$/.test(pathname)) { res.writeHead(403); return res.end("Forbidden"); }
+    if (!path.startsWith(root + sep) || /(^|\/)\.|^\/(src|node_modules|scripts|tests|reports)(\/|$)|\.(jsx|mjs|json|md)$/.test(pathname)) { res.writeHead(403); return res.end("Forbidden"); }
     const file = await stat(path).then(s => s.isFile() ? path : null).catch(() => null);
     if (!file) { res.writeHead(404, { "Content-Type": "text/plain" }); return res.end("Not found"); }
     res.writeHead(200, { "Content-Type": mime[extname(file)] || "application/octet-stream", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
